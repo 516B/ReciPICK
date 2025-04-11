@@ -1,0 +1,48 @@
+# --- 공통 ---
+__pycache__/
+*.pyc
+.env
+.vscode/
+*.db
+
+# --- React Native ---
+# dependencies
+/node_modules/
+/yarn.lock
+/package-lock.json
+
+# build
+/android/app/build/
+/ios/Pods/
+/ios/build/
+
+# macOS
+.DS_Store
+
+# misc
+*.log
+*.tmp
+*.swp
+
+# React Native specific
+.expo/
+*.expo
+.expo-shared/
+*.keystore
+*.jks
+
+# Xcode
+*.xcworkspace
+*.xcuserdata/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+
+# Android Studio
+.idea/
+.gradle/
+*.iml
+local.properties
+
+# coverage
+coverage/
