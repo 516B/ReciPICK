@@ -8,7 +8,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MainPage />} />
-      <Route path="/category/:name" element={<CategoryPage />} />
+      <Route path="/category" element={<CategoryPage />} /> {/* ✅ 수정됨 */}
       <Route path="/recipe/:id" element={<RecipePage />} />
       <Route path="/chat" element={<ChatPage />} />
     </Routes>

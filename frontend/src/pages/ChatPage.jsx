@@ -1,16 +1,24 @@
-import { ArrowLeft, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const getCurrentTime = () =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: '나만의 레시피를 검색해보세요!', time: '10:30' }
+    {
+      id: 1,
+      sender: 'bot',
+      text: '나만의 레시피를 검색해보세요!',
+      time: getCurrentTime() 
+    }
   ]);
   const [inputText, setInputText] = useState('');
   const chatEndRef = useRef(null);
 
-  // 자동 스크롤 아래로
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -28,7 +36,6 @@ export default function ChatPage() {
     setMessages([...messages, newMessage]);
     setInputText('');
 
-    // 나중에 GPT 응답 붙일 자리
     setTimeout(() => {
       setMessages(prev => [
         ...prev,
@@ -49,16 +56,14 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
       <div className="w-full max-w-md flex flex-col flex-1">
-        {/* Header */}
-        <header className="bg-[#fef3e8] p-4 flex items-center justify-between border-b border-orange-200">
-          <button onClick={() => navigate(-1)} className="text-[#7a3e0d]">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-md font-semibold text-[#7a3e0d]">나만의 레시피 검색</h1>
-          <div className="w-5" />
-        </header>
+        {/*  Header 컴포넌트 사용 */}
+        <Header
+          title="나만의 레시피 검색"
+          showBack
+          onBack={() => navigate(-1)}
+        />
 
-        {/* Chat Messages */}
+        {/* 메시지 리스트 */}
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
           {messages.map((msg) => (
             <div key={msg.id}>
@@ -68,12 +73,11 @@ export default function ChatPage() {
                   <div className="w-6 h-6 bg-[#fcd9b6] rounded-full flex-shrink-0 mr-2" />
                 )}
                 <div
-                  className={`
-                    px-4 py-2 text-sm rounded-xl max-w-[75%]
-                    ${msg.sender === 'bot'
+                  className={`px-4 py-2 text-sm rounded-xl max-w-[75%] ${
+                    msg.sender === 'bot'
                       ? 'bg-[#fde6c8] text-[#7a3e0d] rounded-tl-none'
-                      : 'bg-white text-gray-800 border rounded-tr-none'}
-                  `}
+                      : 'bg-white text-gray-800 border rounded-tr-none'
+                  }`}
                 >
                   {msg.text}
                 </div>
@@ -83,7 +87,7 @@ export default function ChatPage() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input */}
+        {/* 입력창 */}
         <div className="p-3 border-t bg-white flex items-center space-x-2">
           <input
             type="text"
