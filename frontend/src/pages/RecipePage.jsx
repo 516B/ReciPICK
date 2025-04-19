@@ -49,8 +49,10 @@ export default function RecipePage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 items-center">
       <div className="w-full max-w-md">
+
+        {/* ✅ Header에 앱 이름만 */}
         <Header
-          title={recipe.title}
+          title="레시픽"
           showBack
           onBack={() =>
             navigate(`/category?name=${encodeURIComponent(categoryName)}`, {
@@ -59,6 +61,7 @@ export default function RecipePage() {
           }
         />
 
+        {/* 레시피 이미지 */}
         <div className="relative">
           <img
             src={recipe.image_url}
@@ -67,8 +70,18 @@ export default function RecipePage() {
           />
         </div>
 
+        {/* ✅ 제목 + Chat 버튼 */}
         <div className="p-4 bg-white border-b border-gray-200">
-          <h2 className="text-xl font-bold mb-6">{recipe.title}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">{recipe.title}</h2>
+            <button
+              onClick={() => navigate("/chat")}
+              className="text-xs bg-pink-600 text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-pink-700 transition"
+            >
+              💬 Chat
+            </button>
+          </div>
+
           <div className="flex justify-center gap-x-10 text-center text-gray-500 text-sm">
             <div className="flex flex-col items-center justify-center">
               <User size={18} />
@@ -85,6 +98,7 @@ export default function RecipePage() {
           </div>
         </div>
 
+        {/* 재료 목록 */}
         <div className="p-4 bg-white mt-2 border-b border-gray-200">
           <h3 className="text-lg font-medium mb-4">재료</h3>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
@@ -102,6 +116,7 @@ export default function RecipePage() {
           </ul>
         </div>
 
+        {/* 조리 순서 */}
         <div className="p-4 bg-white mt-2">
           <h3 className="text-lg font-medium mb-4">조리순서</h3>
           {recipe.steps.map((step, idx) => (
