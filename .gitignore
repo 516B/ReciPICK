@@ -1,39 +1,48 @@
-# --- 공통 시스템 파일 ---
+# --- 공통 ---
 __pycache__/
 *.pyc
+.env
+.vscode/
 *.db
+
+# --- React Native ---
+# dependencies
+/node_modules/
+/yarn.lock
+/package-lock.json
+
+# build
+/android/app/build/
+/ios/Pods/
+/ios/build/
+
+# macOS
 .DS_Store
+
+# misc
 *.log
 *.tmp
 *.swp
 
-# --- 개발 환경 설정 파일 ---
-.env
-.vscode/
+# React Native specific
+.expo/
+*.expo
+.expo-shared/
+*.keystore
+*.jks
+
+# Xcode
+*.xcworkspace
+*.xcuserdata/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+
+# Android Studio
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.gradle/
+*.iml
+local.properties
 
-# --- Node/React 프로젝트 ---
-node_modules/
-build/
-dist/
-dist-ssr/
-*.local
-yarn.lock
-package-lock.json
-pnpm-debug.log*
-lerna-debug.log*
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# --- 테스트 및 커버리지 ---
+# coverage
 coverage/
-
-# --- 선택적으로 추가 가능 ---
-# !.vscode/extensions.json
-# logs/
