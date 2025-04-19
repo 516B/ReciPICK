@@ -1,3 +1,4 @@
+// CategoryPage.jsx
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -8,38 +9,70 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
 
-  // 쿼리 파라미터에서 categoryName 읽기
   const params = new URLSearchParams(location.search);
   const nameFromQuery = params.get("name");
   const decodedName = nameFromQuery ? decodeURIComponent(nameFromQuery) : "";
 
-  // 아이콘 매핑
   const categoryIconMap = {
-    "밑반찬": "🍱",
-    "메인반찬": "🍲",
-    "국/탕": "🥣",
-    "찌개": "🍜",
+    "밥/죽/떡": "🍚",
+    "국/탕": "🫕",
+    "찌개": "🍲",
+    "밑반찬": "🥢",
+    "메인반찬": "🥣",
     "양식": "🍝",
+    "빵": "🥖",
     "디저트": "🧁",
     "퓨전": "🥘",
-    "빵": "🍞",
-    "밥/죽/떡": "🍚",
     "샐러드": "🥗",
   };
 
   const categoryName = decodedName;
   const categoryIcon =
     location.state?.categoryIcon || categoryIconMap[categoryName] || "🍽️";
-
   const categoryTitle = `${categoryIcon} ${categoryName}`;
 
   const items = [
-    { id: 1, name: "시금치나물", image: "https://via.placeholder.com/400x300" },
-    { id: 2, name: "김치", image: "https://via.placeholder.com/400x300" },
-    { id: 3, name: "무생채", image: "https://via.placeholder.com/400x300" },
-    { id: 4, name: "오이무침", image: "https://via.placeholder.com/400x300" },
-    { id: 5, name: "콩나물무침", image: "https://via.placeholder.com/400x300" },
-    { id: 6, name: "마늘쫑볶음", image: "https://via.placeholder.com/400x300" },
+    {
+      id: "6898082",
+      name: "쌈무우말이",
+      image:
+        "https://recipe1.ezmember.co.kr/cache/recipe/2018/10/17/3d8f1b20aa4e3f8ecdcfb3fcb7d773f91.jpg",
+    },
+    {
+      id: "6898083",
+      name: "샐러드 파스타",
+      image: "https://via.placeholder.com/400x300?text=샐러드파스타",
+    },
+    {
+      id: "6898084",
+      name: "단호박 샐러드",
+      image: "https://via.placeholder.com/400x300?text=단호박샐러드",
+    },
+    {
+      id: "6898085",
+      name: "연어 샐러드",
+      image: "https://via.placeholder.com/400x300?text=연어샐러드",
+    },
+    {
+      id: "6898086",
+      name: "닭가슴살 샐러드",
+      image: "https://via.placeholder.com/400x300?text=닭가슴살샐러드",
+    },
+    {
+      id: "6898087",
+      name: "과일 샐러드",
+      image: "https://via.placeholder.com/400x300?text=과일샐러드",
+    },
+    {
+      id: "6898088",
+      name: "리코타치즈 샐러드",
+      image: "https://via.placeholder.com/400x300?text=리코타샐러드",
+    },
+    {
+      id: "6898089",
+      name: "두부 샐러드",
+      image: "https://via.placeholder.com/400x300?text=두부샐러드",
+    },
   ];
 
   const filteredItems = items.filter((item) =>
@@ -49,10 +82,8 @@ export default function CategoryPage() {
   return (
     <div className="min-h-screen bg-[#f7f8fa] flex justify-center">
       <div className="w-full max-w-md flex flex-col">
-        {/*  헤더 */}
         <Header title={categoryTitle} showBack onBack={() => navigate("/")} />
 
-        {/* 검색창 */}
         <div className="bg-white p-4">
           <div className="relative flex items-center border border-[#fc5305] rounded-full bg-[#ffffff] px-4 py-2">
             <Search className="text-[#fc5305] mr-2" size={20} />
@@ -65,8 +96,7 @@ export default function CategoryPage() {
             />
           </div>
         </div>
-        
-        {/*  레시피 목록 */}
+
         <div className="p-4 grid grid-cols-2 gap-4">
           {filteredItems.length > 0 ? (
             filteredItems.map((item) => (
@@ -75,10 +105,7 @@ export default function CategoryPage() {
                 className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
                 onClick={() =>
                   navigate(`/recipe/${item.id}`, {
-                    state: {
-                      categoryName: categoryName,
-                      categoryIcon: categoryIcon, 
-                    },
+                    state: { categoryName, categoryIcon },
                   })
                 }
               >

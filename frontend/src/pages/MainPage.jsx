@@ -6,15 +6,15 @@ export default function MainPage() {
   const navigate = useNavigate();
 
   const foodCategories = [
-    { name: "밑반찬", icon: "🍱" },
-    { name: "메인반찬", icon: "🍲" },
-    { name: "국/탕", icon: "🥣" },
-    { name: "찌개", icon: "🍜" },
+    { name: "밥/죽/떡", icon: "🍚" },
+    { name: "국/탕", icon: "🫕" },
+    { name: "찌개", icon: "🍲" },
+    { name: "밑반찬", icon: "🥢" },
+    { name: "메인반찬", icon: "🥣" },
     { name: "양식", icon: "🍝" },
+    { name: "빵", icon: "🥖" },
     { name: "디저트", icon: "🧁" },
     { name: "퓨전", icon: "🥘" },
-    { name: "빵", icon: "🍞" },
-    { name: "밥/죽/떡", icon: "🍚" },
     { name: "샐러드", icon: "🥗" },
   ];
 
