@@ -132,7 +132,7 @@ export default function CategoryPage() {
             })
           ) : (
             <p className="col-span-2 text-center text-sm text-gray-400">
-              검색 결과가 없습니다.
+              로딩중 ...
             </p>
           )}
         </div>
