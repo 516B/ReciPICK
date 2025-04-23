@@ -1,7 +1,8 @@
 import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
+import axios from 'axios';
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -12,7 +13,8 @@ export default function ChatPage() {
     {
       id: 1,
       sender: 'bot',
-      text: '나만의 레시피를 검색해보세요!',
+      type: 'text',
+      content: '나만의 레시피를 검색해보세요!',
       time: getCurrentTime()
     }
   ]);
@@ -23,30 +25,54 @@ export default function ChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputText.trim()) return;
+
+    const userText = inputText.trim();
 
     const newMessage = {
       id: messages.length + 1,
       sender: 'user',
-      text: inputText.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      type: 'text',
+      content: userText,
+      time: getCurrentTime()
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setInputText('');
 
-    setTimeout(() => {
-      setMessages(prev => [
+    try {
+      const res = await axios.get(`http://localhost:8000/search?ingredient=${encodeURIComponent(userText)}`);
+      const recipes = res.data.recipes || [];
+
+      const botMessage = {
+        id: messages.length + 2,
+        sender: 'bot',
+        type: recipes.length > 0 ? 'list' : 'text',
+        content: recipes.length > 0
+          ? recipes
+          : `"${userText}"에 해당하는 레시피를 찾지 못했어요.`,
+        time: getCurrentTime()
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("검색 에러:", error);
+
+      const errorMsg =
+        error.response?.data?.error || error.message || "알 수 없는 오류가 발생했어요.";
+
+      setMessages((prev) => [
         ...prev,
         {
           id: prev.length + 1,
           sender: 'bot',
-          text: `"${newMessage.text}"에 대한 레시피를 검색 중입니다!`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          type: 'text',
+          content: `레시피 검색 중 오류가 발생했어요.\n${errorMsg}`,
+          time: getCurrentTime()
         }
       ]);
-    }, 1000);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -56,14 +82,12 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
       <div className="w-full max-w-md flex flex-col flex-1">
-        {/* Header */}
         <Header
           title="나만의 레시피 검색"
           showBack
           onBack={() => navigate(-1)}
         />
 
-        {/* 메시지 리스트 */}
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
           {messages.map((msg) => (
             <div key={msg.id}>
@@ -77,13 +101,31 @@ export default function ChatPage() {
                   />
                 )}
                 <div
-                  className={`px-4 py-2 text-sm rounded-xl max-w-[75%] ${
+                  className={`px-4 py-2 text-sm rounded-xl max-w-[75%] whitespace-pre-wrap ${
                     msg.sender === 'bot'
                       ? 'bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5'
                       : 'bg-[#FBF5EF] text-gray-800 rounded-tr-none'
                   }`}
                 >
-                  {msg.text}
+                  {msg.type === 'text' &&
+                    msg.content.split('\n').map((line, i) => (
+                      <span key={i}>
+                        {line}
+                        <br />
+                      </span>
+                    ))}
+
+                  {msg.type === 'list' && (
+                    <ul className="list-disc list-inside space-y-1">
+                      {msg.content.map((recipe) => (
+                        <li key={recipe.id}>
+                          <Link to={`/recipe/${recipe.id}`} className="text-blue-600 hover:underline">
+                            {recipe.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>
@@ -91,7 +133,6 @@ export default function ChatPage() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* 입력창 */}
         <div className="p-3 border-t bg-white flex items-center space-x-2">
           <input
             type="text"

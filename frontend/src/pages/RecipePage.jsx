@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { Clock, User, Star } from "lucide-react";
 import Header from "../components/Header";
+import axios from "axios";
 
-// 난이도에 따른 별 개수 반환 함수
 function getStarsByDifficulty(difficulty) {
   switch (difficulty) {
     case "아무나":
@@ -19,38 +18,6 @@ function getStarsByDifficulty(difficulty) {
   }
 }
 
-const dummyRecipes = [
-  {
-    id: "6898082",
-    title: "쌈무우말이",
-    category: "샐러드",
-    serving: "4인분",
-    cook_time: "30분 이내",
-    difficulty: "초급",
-    image_url:
-      "https://recipe1.ezmember.co.kr/cache/recipe/2018/10/17/3d8f1b20aa4e3f8ecdcfb3fcb7d773f91.jpg",
-    ingredients: [
-      "파프리카 노란색: 1/2개",
-      "파프리카 빨간색: 1/2개",
-      "크래미: 6개",
-      "계란: 4개",
-      "팽이버섯: 1/2봉지",
-      "쌈무우물: 10숟가락",
-      "연겨자: 2숟가락",
-      "꿀: 1숟가락",
-      "마늘다진거: 1숟가락",
-      "깨소금: 1숟가락",
-      "소금: 1티스푼",
-    ],
-    steps: [
-      "야채는 너무 굵지 않고 길이가 비슷하게 썰어 주세요.",
-      "계란에 소금 한꼬집 넣고 풀어서 2개씩 나누어 계란말이를 해주세요.",
-      "쌈무 끝부분에 여러 재료를 올리고 부채꼴 모양으로 돌돌 말아주세요.",
-      "소스 만들기: 쌈무우물10수저 + 겨자2 + 꿀1 + 마늘1 + 깨소금1 + 소금1티스푼 잘 저어주세요.",
-    ],
-  },
-];
-
 export default function RecipePage() {
   const { id } = useParams();
   const location = useLocation();
@@ -58,14 +25,28 @@ export default function RecipePage() {
   const categoryName = location.state?.categoryName || "";
   const categoryIcon = location.state?.categoryIcon || "🍽️";
 
-  const recipe = dummyRecipes.find((r) => r.id === id);
-  if (!recipe) return <div className="p-4">레시피를 찾을 수 없습니다.</div>;
+  const [recipe, setRecipe] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        const res = await axios.get(`http://localhost:8000/recipe/${id}`);
+        setRecipe(res.data);
+      } catch (err) {
+        setError("레시피를 불러오는 데 실패했습니다.");
+        console.error(err);
+      }
+    };
+    fetchRecipe();
+  }, [id]);
+
+  if (error) return <div className="p-4">{error}</div>;
+  if (!recipe) return <div className="p-4">로딩 중...</div>;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 items-center">
       <div className="w-full max-w-md">
-
-        {/* Header */}
         <Header
           title={
             <img
@@ -82,7 +63,6 @@ export default function RecipePage() {
           }
         />
 
-        {/* 레시피 이미지 */}
         <div className="relative">
           <img
             src={recipe.image_url}
@@ -91,7 +71,6 @@ export default function RecipePage() {
           />
         </div>
 
-        {/* 제목 + Chat 버튼 */}
         <div className="p-4 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">{recipe.title}</h2>
@@ -103,7 +82,6 @@ export default function RecipePage() {
             </button>
           </div>
 
-          {/* 인분 / 시간 / 난이도 */}
           <div className="flex justify-center text-center text-gray-500 text-sm px-4">
             <div className="flex gap-12">
               <div className="flex flex-col items-center">
@@ -136,7 +114,6 @@ export default function RecipePage() {
           </div>
         </div>
 
-        {/* 재료 목록 */}
         <div className="p-4 bg-white mt-2 border-b border-gray-200">
           <h3 className="text-lg font-bold mb-4">재료</h3>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
@@ -154,7 +131,6 @@ export default function RecipePage() {
           </ul>
         </div>
 
-        {/* 조리 순서 */}
         <div className="p-4 bg-white mt-2">
           <h3 className="text-lg font-bold mb-4">조리순서</h3>
           {recipe.steps.map((step, idx) => (

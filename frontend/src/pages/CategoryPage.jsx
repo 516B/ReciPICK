@@ -1,12 +1,16 @@
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Header from "../components/Header";
+import axios from "axios";
 
 export default function CategoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
+  const [recipes, setRecipes] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const params = new URLSearchParams(location.search);
   const nameFromQuery = params.get("name");
@@ -30,52 +34,56 @@ export default function CategoryPage() {
     location.state?.categoryIcon || categoryIconMap[categoryName] || "🍽️";
   const categoryTitle = `${categoryIcon} ${categoryName}`;
 
-  const items = [
-    {
-      id: "6898082",
-      name: "쌈무우말이",
-      image:
-        "https://recipe1.ezmember.co.kr/cache/recipe/2018/10/17/3d8f1b20aa4e3f8ecdcfb3fcb7d773f91.jpg",
-    },
-    {
-      id: "6898083",
-      name: "샐러드 파스타",
-      image: "https://via.placeholder.com/400x300?text=샐러드파스타",
-    },
-    {
-      id: "6898084",
-      name: "단호박 샐러드",
-      image: "https://via.placeholder.com/400x300?text=단호박샐러드",
-    },
-    {
-      id: "6898085",
-      name: "연어 샐러드",
-      image: "https://via.placeholder.com/400x300?text=연어샐러드",
-    },
-    {
-      id: "6898086",
-      name: "닭가슴살 샐러드",
-      image: "https://via.placeholder.com/400x300?text=닭가슴살샐러드",
-    },
-    {
-      id: "6898087",
-      name: "과일 샐러드",
-      image: "https://via.placeholder.com/400x300?text=과일샐러드",
-    },
-    {
-      id: "6898088",
-      name: "리코타치즈 샐러드",
-      image: "https://via.placeholder.com/400x300?text=리코타샐러드",
-    },
-    {
-      id: "6898089",
-      name: "두부 샐러드",
-      image: "https://via.placeholder.com/400x300?text=두부샐러드",
-    },
-  ];
+  const fetchRecipes = async (pageNum = 1) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/search/category?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
+      );
+      const newRecipes = res.data.recipes || [];
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchText.toLowerCase())
+      setRecipes((prev) => {
+        const seen = new Set(prev.map((r) => r.id));
+        const filtered = newRecipes.filter((r) => !seen.has(r.id));
+        return [...prev, ...filtered];
+      });
+
+      if (newRecipes.length === 0 || newRecipes.every(r => recipes.some(e => e.id === r.id))) {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("카테고리 불러오기 오류:", err);
+    }
+  };
+
+  useEffect(() => {
+    setPage(1);
+    setRecipes([]);
+    setHasMore(true);
+    fetchRecipes(1);
+  }, [decodedName]);
+
+  const observer = useRef();
+  const lastItemRef = useCallback(
+    (node) => {
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prev) => {
+            const next = prev + 1;
+            fetchRecipes(next);
+            return next;
+          });
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [hasMore]
+  );
+
+  const filteredItems = recipes.filter((item) =>
+    item.title.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
@@ -98,26 +106,30 @@ export default function CategoryPage() {
 
         <div className="p-4 grid grid-cols-2 gap-4">
           {filteredItems.length > 0 ? (
-            filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-xl border border-gray-250 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
-                onClick={() =>
-                  navigate(`/recipe/${item.id}`, {
-                    state: { categoryName, categoryIcon },
-                  })
-                }
-              >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-36 object-cover"
-                />
-                <div className="text-center text-sm text-gray-700 py-2">
-                  {item.name}
+            filteredItems.map((item, index) => {
+              const isLast = index === filteredItems.length - 1;
+              return (
+                <div
+                  key={item.id}
+                  ref={isLast ? lastItemRef : null}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
+                  onClick={() =>
+                    navigate(`/recipe/${item.id}`, {
+                      state: { categoryName, categoryIcon },
+                    })
+                  }
+                >
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="w-full h-36 object-cover"
+                  />
+                  <div className="text-center text-sm text-gray-700 py-2">
+                    {item.title}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="col-span-2 text-center text-sm text-gray-400">
               검색 결과가 없습니다.
