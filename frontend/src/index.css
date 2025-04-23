@@ -8,19 +8,20 @@
 @tailwind utilities;
 
 body {
-    background-color: #f2f4f7;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
-  }
-  
-  #root {
-    width: 100%;
-    max-width: 430px; /* iPhone 크기 */
-    background-color: white;
-    box-shadow: 0 0 20px rgba(0,0,0,0.05);
-    border-radius: 16px;
-    overflow: hidden;
-  }
+  background-color: #f2f4f7;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  width: 100%;
+  max-width: 430px;  /* 앱 크기 고정 */
+  margin: 0 auto;
+  background-color: white;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
   

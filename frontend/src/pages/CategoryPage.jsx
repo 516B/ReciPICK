@@ -1,4 +1,3 @@
-// CategoryPage.jsx
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";

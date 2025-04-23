@@ -4,6 +4,21 @@ import { useEffect, useState } from "react";
 import { Clock, User, Star } from "lucide-react";
 import Header from "../components/Header";
 
+// 난이도에 따른 별 개수 반환 함수
+function getStarsByDifficulty(difficulty) {
+  switch (difficulty) {
+    case "아무나":
+    case "초급":
+      return 1;
+    case "중급":
+      return 2;
+    case "고급":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 const dummyRecipes = [
   {
     id: "6898082",
@@ -50,7 +65,7 @@ export default function RecipePage() {
     <div className="flex flex-col min-h-screen bg-gray-100 items-center">
       <div className="w-full max-w-md">
 
-        {/* ✅ Header에 앱 이름만 */}
+        {/* Header */}
         <Header
           title="레시픽"
           showBack
@@ -70,7 +85,7 @@ export default function RecipePage() {
           />
         </div>
 
-        {/* ✅ 제목 + Chat 버튼 */}
+        {/* 제목 + Chat 버튼 */}
         <div className="p-4 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">{recipe.title}</h2>
@@ -92,8 +107,22 @@ export default function RecipePage() {
               <span className="mt-1">{recipe.cook_time}</span>
             </div>
             <div className="flex flex-col items-center justify-center">
-              <Star size={18} />
-              <span className="mt-1">난이도 {recipe.difficulty}</span>
+              <div className="flex gap-1">
+                {Array.from({ length: getStarsByDifficulty(recipe.difficulty) }).map(
+                  (_, i) => (
+                    <Star
+                      key={i}
+                      size={18}
+                      strokeWidth={2}
+                      className="text-gray-600"
+                      fill="currentColor"
+                    />
+                  )
+                )}
+              </div>
+              <span className="mt-1 text-sm text-gray-500">
+                난이도 {recipe.difficulty}
+              </span>
             </div>
           </div>
         </div>
