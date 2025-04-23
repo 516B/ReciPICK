@@ -42,11 +42,10 @@ def index_recipes_batch(all_recipes):
 # JSON 파일 로드
 def load_recipes_json():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.abspath(os.path.join(base_dir, "..", "..", "data"))
+    data_path = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "data"))
     json_path = os.path.join(data_path, "recipes_cleaned.json")
     with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)
-    
 
 # 실행
 if __name__ == "__main__":
