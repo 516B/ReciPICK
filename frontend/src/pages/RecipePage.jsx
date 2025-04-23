@@ -75,7 +75,13 @@ export default function RecipePage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">{recipe.title}</h2>
             <button
-              onClick={() => navigate("/chat")}
+              onClick={() =>
+                navigate("/chat", {
+                  state: {
+                    recipe, // 레시피 넘기기
+                  },
+                })
+              }
               className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
             >
               💬 Chat
