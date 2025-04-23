@@ -23,8 +23,15 @@ export default function MainPage() {
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow bg-[#F7F8FA]">
         <div className="w-full max-w-md mx-auto bg-[#F7F8FA] text-sm">
-          <Header title="레시픽" />
-
+        <Header
+          title={
+            <img
+              src="/images/mainlogo.png"
+              alt="레시픽 로고"
+              className="h-12 object-contain"
+            />
+          }
+        />
           <div className="bg-white p-4">
             <div
               className="relative flex items-center border border-[#fc5305] rounded-full bg-[#ffffff] px-4 py-2"
@@ -48,7 +55,7 @@ export default function MainPage() {
                       },
                     })
                   }
-                  className="w-full max-w-[100px] h-[100px] bg-[#ffe2d9] hover:bg-[#fee9d6] transition-all rounded-2xl shadow-sm flex flex-col items-center justify-center"
+                  className="w-full max-w-[100px] h-[100px] bg-[#ffe2d9] hover:bg-[#FFCBB3] transition-all rounded-2xl shadow-sm flex flex-col items-center justify-center"
                 >
                   <span className="text-xl">{category.icon}</span>
                   <span className="text-xs mt-1 font-medium text-black">

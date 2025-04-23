@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 
 export default function Header({ title = "레시픽", showBack = false, onBack }) {
   return (
-    <header className="bg-[#ffe2d9] p-4 text-center relative">
+    <header className="bg-[#ffe2d9] h-16 px-4 text-center relative flex items-center justify-center">
       {showBack && (
         <button
           onClick={onBack}
@@ -11,7 +11,12 @@ export default function Header({ title = "레시픽", showBack = false, onBack }
           <ArrowLeft size={20} />
         </button>
       )}
-      <h1 className="text-xl font-bold text-[#000000]">{title}</h1>
+      {typeof title === "string" ? (
+        <h1 className="text-xl font-bold text-[#000000]">{title}</h1>
+      ) : (
+        <div className="flex items-center">{title}</div>
+      )}
     </header>
   );
 }
+

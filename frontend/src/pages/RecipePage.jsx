@@ -67,7 +67,13 @@ export default function RecipePage() {
 
         {/* Header */}
         <Header
-          title="레시픽"
+          title={
+            <img
+              src="/images/mainlogo.png"
+              alt="레시픽 로고"
+              className="h-12 object-contain"
+            />
+          }
           showBack
           onBack={() =>
             navigate(`/category?name=${encodeURIComponent(categoryName)}`, {
@@ -91,52 +97,55 @@ export default function RecipePage() {
             <h2 className="text-xl font-bold">{recipe.title}</h2>
             <button
               onClick={() => navigate("/chat")}
-              className="text-xs bg-pink-600 text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-pink-700 transition"
+              className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
             >
               💬 Chat
             </button>
           </div>
 
-          <div className="flex justify-center gap-x-10 text-center text-gray-500 text-sm">
-            <div className="flex flex-col items-center justify-center">
-              <User size={18} />
-              <span className="mt-1">{recipe.serving}</span>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <Clock size={18} />
-              <span className="mt-1">{recipe.cook_time}</span>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="flex gap-1">
-                {Array.from({ length: getStarsByDifficulty(recipe.difficulty) }).map(
-                  (_, i) => (
-                    <Star
-                      key={i}
-                      size={18}
-                      strokeWidth={2}
-                      className="text-gray-600"
-                      fill="currentColor"
-                    />
-                  )
-                )}
+          {/* 인분 / 시간 / 난이도 */}
+          <div className="flex justify-center text-center text-gray-500 text-sm px-4">
+            <div className="flex gap-12">
+              <div className="flex flex-col items-center">
+                <User size={18} />
+                <span className="mt-1">{recipe.serving}</span>
               </div>
-              <span className="mt-1 text-sm text-gray-500">
-                난이도 {recipe.difficulty}
-              </span>
+              <div className="flex flex-col items-center">
+                <Clock size={18} />
+                <span className="mt-1">{recipe.cook_time}</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="flex gap-1">
+                  {Array.from({ length: getStarsByDifficulty(recipe.difficulty) }).map(
+                    (_, i) => (
+                      <Star
+                        key={i}
+                        size={18}
+                        strokeWidth={2}
+                        className="text-gray-600"
+                        fill="currentColor"
+                      />
+                    )
+                  )}
+                </div>
+                <span className="mt-1 text-sm text-gray-500">
+                  난이도 {recipe.difficulty}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* 재료 목록 */}
         <div className="p-4 bg-white mt-2 border-b border-gray-200">
-          <h3 className="text-lg font-medium mb-4">재료</h3>
+          <h3 className="text-lg font-bold mb-4">재료</h3>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
             {recipe.ingredients.map((item, idx) => {
               const [name, amount] = item.split(":");
               return (
                 <li key={idx} className="flex justify-between text-sm">
                   <span className="text-gray-800">{name.trim()}</span>
-                  <span className="text-pink-600 font-medium">
+                  <span className="text-[#18881C] font-medium">
                     {amount?.trim()}
                   </span>
                 </li>
@@ -147,11 +156,11 @@ export default function RecipePage() {
 
         {/* 조리 순서 */}
         <div className="p-4 bg-white mt-2">
-          <h3 className="text-lg font-medium mb-4">조리순서</h3>
+          <h3 className="text-lg font-bold mb-4">조리순서</h3>
           {recipe.steps.map((step, idx) => (
             <div key={idx} className="mb-6">
               <div className="flex items-start mb-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-pink-600 text-white text-sm font-bold mr-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#2DB431] text-white text-sm font-bold mr-3">
                   {idx + 1}
                 </div>
                 <p className="text-gray-800 text-sm leading-relaxed flex-1">

@@ -101,7 +101,7 @@ export default function CategoryPage() {
             filteredItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
+                className="bg-white rounded-xl border border-gray-250 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
                 onClick={() =>
                   navigate(`/recipe/${item.id}`, {
                     state: { categoryName, categoryIcon },

@@ -7,13 +7,13 @@ export default function ChatPage() {
   const navigate = useNavigate();
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+
   const [messages, setMessages] = useState([
     {
       id: 1,
       sender: 'bot',
       text: '나만의 레시피를 검색해보세요!',
-      time: getCurrentTime() 
+      time: getCurrentTime()
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -56,7 +56,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
       <div className="w-full max-w-md flex flex-col flex-1">
-        {/*  Header 컴포넌트 사용 */}
+        {/* Header */}
         <Header
           title="나만의 레시피 검색"
           showBack
@@ -70,13 +70,17 @@ export default function ChatPage() {
               <div className="text-center text-xs text-gray-400">{msg.time}</div>
               <div className={`flex items-start ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mt-1`}>
                 {msg.sender === 'bot' && (
-                  <div className="w-6 h-6 bg-[#fcd9b6] rounded-full flex-shrink-0 mr-2" />
+                  <img
+                    src="/images/chatbot.png"
+                    alt="Bot"
+                    className="w-12 h-12 rounded-full mr-2"
+                  />
                 )}
                 <div
                   className={`px-4 py-2 text-sm rounded-xl max-w-[75%] ${
                     msg.sender === 'bot'
-                      ? 'bg-[#fde6c8] text-[#7a3e0d] rounded-tl-none'
-                      : 'bg-white text-gray-800 border rounded-tr-none'
+                      ? 'bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5'
+                      : 'bg-[#FBF5EF] text-gray-800 rounded-tr-none'
                   }`}
                 >
                   {msg.text}
@@ -99,7 +103,7 @@ export default function ChatPage() {
           />
           <button
             onClick={handleSend}
-            className="p-2 bg-[#fef3e8] text-[#7a3e0d] rounded-full hover:bg-[#fce1c8]"
+            className="p-2 bg-[#fce1c8] text-[#7a3e0d] rounded-full hover:bg-[#ffcb8c]"
           >
             <Send size={18} />
           </button>
