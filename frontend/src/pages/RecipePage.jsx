@@ -65,11 +65,7 @@ export default function RecipePage() {
             />
           }
           showBack
-          onBack={() =>
-            navigate(`/category?name=${encodeURIComponent(categoryName)}`, {
-              state: { categoryName, categoryIcon },
-            })
-          }
+          onBack={() => navigate(-1)}
         />
 
         <div className="relative">
