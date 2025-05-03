@@ -12,39 +12,54 @@ export default function ChatPage() {
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "bot",
-      type: "text",
-      content: "나만의 레시피를 검색해보세요!",
-      time: getCurrentTime(),
-    },
-  ]);
+  const savedMessages = localStorage.getItem("chatMessages");
+
+  const [messages, setMessages] = useState(
+    savedMessages
+      ? JSON.parse(savedMessages)
+      : [
+          {
+            id: 1,
+            sender: "bot",
+            type: "text",
+            content: "나만의 레시피를 검색해보세요!",
+            time: getCurrentTime(),
+          },
+        ]
+  );
   const [inputText, setInputText] = useState("");
+  const [lastIngredients, setLastIngredients] = useState([]);
+  const [offset, setOffset] = useState(0);
   const chatEndRef = useRef(null);
-  const hasInitialized = useRef(false); 
+  const hasPostedIntro = useRef(false);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (passedRecipe && !hasInitialized.current) {
-      hasInitialized.current = true; 
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  // ✅ 자동 메시지 1회 출력 후 state 제거
+  useEffect(() => {
+    if (passedRecipe && !hasPostedIntro.current) {
       setMessages((prev) => [
         ...prev,
         {
           id: prev.length + 1,
           sender: "bot",
           type: "text",
-          content: `"${passedRecipe.title}" 레시피에 대해 더 알고 싶으신가요?
-재료: ${passedRecipe.ingredients?.join(", ")}`,
+          content: `"${passedRecipe.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${passedRecipe.ingredients?.join(", ")}`,
           time: getCurrentTime(),
         },
       ]);
+      hasPostedIntro.current = true;
+
+      // 👉 뒤로 가기 시 recipe 정보가 다시 들어오지 않도록 제거
+      navigate(location.pathname, { replace: true });
     }
-  }, []);
+  }, [passedRecipe, navigate, location.pathname]);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -63,42 +78,46 @@ export default function ChatPage() {
     setInputText("");
 
     try {
-      const res = await axios.get(
-        `http://localhost:8000/search?ingredient=${encodeURIComponent(userText)}`
-      );
-      const recipes = res.data.recipes || [];
+      const isRetryRequest = /다시\s*추천|다른\s*레시피/.test(userText);
 
-      const filtered = recipes.filter(
-        (r) => r.title !== "정보 없음" && r.image_url !== "정보 없음"
-      );
+      const res = await axios.post("http://localhost:8000/recommend", {
+        message: userText,
+        previous_ingredients: lastIngredients,
+        offset: isRetryRequest ? offset : 0,
+      });
+
+      const recipeList = res.data.recipes;
+      const newIngredients = res.data.ingredients;
+      const newOffset = res.data.offset;
+
+      if (!isRetryRequest) {
+        setLastIngredients(newIngredients);
+        setOffset(newOffset);
+      } else {
+        setOffset(newOffset);
+      }
 
       const botMessage = {
         id: messages.length + 2,
         sender: "bot",
-        type: filtered.length > 0 ? "list" : "text",
+        type: recipeList.length > 0 ? "recommendation" : "text",
         content:
-          filtered.length > 0
-            ? filtered
-            : `"${userText}"에 해당하는 레시피를 찾지 못했어요.`,
+          recipeList.length > 0
+            ? { recipes: recipeList }
+            : "추천 결과가 없어요.",
         time: getCurrentTime(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error("검색 에러:", error);
-      const errorMsg =
-        error.response?.data?.error ||
-        error.message ||
-        "알 수 없는 오류가 발생했어요.";
-
+      const errorMsg = error.response?.data?.error || error.message;
       setMessages((prev) => [
         ...prev,
         {
           id: prev.length + 1,
           sender: "bot",
           type: "text",
-          content: `레시피 검색 중 오류가 발생했어요.
-${errorMsg}`,
+          content: `오류 발생: ${errorMsg}`,
           time: getCurrentTime(),
         },
       ]);
@@ -107,6 +126,22 @@ ${errorMsg}`,
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSend();
+  };
+
+  const clearMessages = () => {
+    localStorage.removeItem("chatMessages");
+    setMessages([
+      {
+        id: 1,
+        sender: "bot",
+        type: "text",
+        content: "나만의 레시피를 검색해보세요!",
+        time: getCurrentTime(),
+      },
+    ]);
+    setLastIngredients([]);
+    setOffset(0);
+    hasPostedIntro.current = false;
   };
 
   return (
@@ -149,9 +184,9 @@ ${errorMsg}`,
                       </span>
                     ))}
 
-                  {msg.type === "list" && (
+                  {msg.type === "recommendation" && (
                     <ul className="list-disc list-inside space-y-1">
-                      {msg.content.map((recipe) => (
+                      {msg.content.recipes.map((recipe) => (
                         <li key={recipe.id}>
                           <Link
                             to={`/recipe/${recipe.id}`}
@@ -169,6 +204,13 @@ ${errorMsg}`,
           ))}
           <div ref={chatEndRef} />
         </div>
+
+        <button
+          onClick={clearMessages}
+          className="text-xs text-gray-500 underline mt-2 mb-2 self-center"
+        >
+          대화 초기화
+        </button>
 
         <div className="p-3 border-t bg-white flex items-center space-x-2">
           <input
