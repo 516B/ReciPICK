@@ -29,7 +29,6 @@ export default function ChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  
   useEffect(() => {
     if (passedRecipe && !hasInitialized.current) {
       hasInitialized.current = true; 
@@ -39,7 +38,8 @@ export default function ChatPage() {
           id: prev.length + 1,
           sender: "bot",
           type: "text",
-          content: `"${passedRecipe.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${passedRecipe.ingredients?.join(", ")}`,
+          content: `"${passedRecipe.title}" 레시피에 대해 더 알고 싶으신가요?
+재료: ${passedRecipe.ingredients?.join(", ")}`,
           time: getCurrentTime(),
         },
       ]);
@@ -68,13 +68,17 @@ export default function ChatPage() {
       );
       const recipes = res.data.recipes || [];
 
+      const filtered = recipes.filter(
+        (r) => r.title !== "정보 없음" && r.image_url !== "정보 없음"
+      );
+
       const botMessage = {
         id: messages.length + 2,
         sender: "bot",
-        type: recipes.length > 0 ? "list" : "text",
+        type: filtered.length > 0 ? "list" : "text",
         content:
-          recipes.length > 0
-            ? recipes
+          filtered.length > 0
+            ? filtered
             : `"${userText}"에 해당하는 레시피를 찾지 못했어요.`,
         time: getCurrentTime(),
       };
@@ -93,7 +97,8 @@ export default function ChatPage() {
           id: prev.length + 1,
           sender: "bot",
           type: "text",
-          content: `레시피 검색 중 오류가 발생했어요.\n${errorMsg}`,
+          content: `레시피 검색 중 오류가 발생했어요.
+${errorMsg}`,
           time: getCurrentTime(),
         },
       ]);

@@ -44,6 +44,15 @@ export default function RecipePage() {
   if (error) return <div className="p-4">{error}</div>;
   if (!recipe) return <div className="p-4">로딩 중...</div>;
 
+  if (
+    recipe.title === "정보 없음" ||
+    recipe.image_url === "정보 없음" ||
+    recipe.ingredients?.some((ing) => ing === "정보 없음") ||
+    recipe.steps?.some((step) => step === "정보 없음")
+  ) {
+    return <div className="p-4 text-gray-500">해당 레시피 정보를 불러올 수 없습니다.</div>;
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 items-center">
       <div className="w-full max-w-md">

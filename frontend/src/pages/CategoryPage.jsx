@@ -82,9 +82,15 @@ export default function CategoryPage() {
     [hasMore]
   );
 
-  const filteredItems = recipes.filter((item) =>
-    item.title.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const filteredItems = recipes
+    .filter(item =>
+      item.title !== "정보 없음" &&
+      item.image_url !== "정보 없음" &&
+      item.image_url?.trim() !== ""
+    )
+    .filter(item =>
+      item.title.toLowerCase().includes(searchText.toLowerCase())
+    );
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] flex justify-center">
