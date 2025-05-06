@@ -41,7 +41,7 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // ✅ 자동 메시지 1회 출력 후 state 제거
+  // 자동 메시지 1회 출력 후 state 제거
   useEffect(() => {
     if (passedRecipe && !hasPostedIntro.current) {
       setMessages((prev) => [
@@ -80,7 +80,7 @@ export default function ChatPage() {
     try {
       const isRetryRequest = /다시\s*추천|다른\s*레시피/.test(userText);
 
-      const res = await axios.post("http://localhost:8000/recommend", {
+      const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: lastIngredients,
         offset: isRetryRequest ? offset : 0,

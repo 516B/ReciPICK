@@ -3,19 +3,23 @@ from app.services.client import client
 
 router = APIRouter()
 
-@router.get("/search")
-async def search_by_category(
-    name: str = Query(...),
+@router.get("/title")  # /search/title 로 접근 가능
+async def search_by_title(
+    q: str = Query(...),
     page: int = Query(1),
-    per_page: int = Query(10)
+    per_page: int = Query(8)
 ):
+    print(f"🔍 검색 실행됨 | q={q}, page={page}, per_page={per_page}")
     try:
         result = client.collections["recipes"].documents.search({
-            "q": name,
-            "query_by": "category",
+            "q": q,
+            "query_by": "title",
             "page": page,
-            "per_page": per_page,
+            "per_page": per_page
         })
+
+        print("🔍 Raw result from Typesense:", result)
+
         recipes = [
             {
                 "id": hit["document"]["id"],
@@ -24,6 +28,8 @@ async def search_by_category(
             }
             for hit in result["hits"]
         ]
+
         return {"recipes": recipes}
     except Exception as e:
+        print(" 에러 발생:", e)
         return {"recipes": [], "error": str(e)}

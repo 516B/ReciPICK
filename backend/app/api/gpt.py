@@ -17,7 +17,7 @@ class PromptRequest(BaseModel):
 @router.post("/recommend")
 async def recommend_recipe(req: PromptRequest):
     try:
-        # ✅ 자연어 문장에서 재료만 추출 (강화된 프롬프트 사용)
+        #  자연어 문장에서 재료만 추출 (강화된 프롬프트 사용)
         ingredient_extract_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -44,7 +44,7 @@ async def recommend_recipe(req: PromptRequest):
         if not ingredients:
             return {"recipes": [], "text": "입력된 문장에서 재료를 찾을 수 없어요."}
 
-        # ✅ Typesense에서 검색 및 점수화
+        #  Typesense에서 검색 및 점수화
         recipe_score = defaultdict(lambda: {"count": 0, "data": None})
 
         for ing in ingredients:

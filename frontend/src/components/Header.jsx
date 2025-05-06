@@ -1,6 +1,9 @@
 import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function Header({ title = "레시픽", showBack = false, onBack }) {
+export default function Header({ title = "레시픽", showBack = false, onBack, onLogoClick }) {
+  const navigate = useNavigate();
+
   return (
     <header className="bg-[#ffe2d9] h-16 px-4 text-center relative flex items-center justify-center">
       {showBack && (
@@ -14,9 +17,16 @@ export default function Header({ title = "레시픽", showBack = false, onBack }
       {typeof title === "string" ? (
         <h1 className="text-xl font-bold text-[#000000]">{title}</h1>
       ) : (
-        <div className="flex items-center">{title}</div>
+        <div
+          className="flex items-center cursor-pointer"
+          onClick={() => {
+            if (onLogoClick) onLogoClick();
+            else navigate("/");
+          }}
+        >
+          {title}
+        </div>
       )}
     </header>
   );
 }
-

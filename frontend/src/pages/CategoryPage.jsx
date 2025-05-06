@@ -37,7 +37,7 @@ export default function CategoryPage() {
   const fetchRecipes = async (pageNum = 1) => {
     try {
       const res = await axios.get(
-        `http://localhost:8000/search/category?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
+        `http://localhost:8000/category/search?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
       );
       const newRecipes = res.data.recipes || [];
 
