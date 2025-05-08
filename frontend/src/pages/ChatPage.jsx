@@ -29,7 +29,7 @@ export default function ChatPage() {
   );
   const [inputText, setInputText] = useState("");
   const [lastIngredients, setLastIngredients] = useState([]);
-  const [offset, setOffset] = useState(0);
+  const [seenRecipeIds, setSeenRecipeIds] = useState([]);
   const chatEndRef = useRef(null);
   const hasPostedIntro = useRef(false);
 
@@ -41,7 +41,7 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // 자동 메시지 1회 출력 후 state 제거
+  // 레시피 상세에서 넘어온 경우 자동 메시지 출력
   useEffect(() => {
     if (passedRecipe && !hasPostedIntro.current) {
       setMessages((prev) => [
@@ -56,7 +56,7 @@ export default function ChatPage() {
       ]);
       hasPostedIntro.current = true;
 
-      // 뒤로 가기 시 recipe 정보가 다시 들어오지 않도록 제거
+      // 뒤로가기 시 recipe 정보 중복 방지
       navigate(location.pathname, { replace: true });
     }
   }, [passedRecipe, navigate, location.pathname]);
@@ -83,19 +83,18 @@ export default function ChatPage() {
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: lastIngredients,
-        offset: isRetryRequest ? offset : 0,
+        seen_recipe_ids: seenRecipeIds, // ✅ 이전 레시피 전달
       });
 
       const recipeList = res.data.recipes;
       const newIngredients = res.data.ingredients;
-      const newOffset = res.data.offset;
+      const newSeenIds = res.data.seen_recipe_ids;
 
+      // ✅ 상태 업데이트
       if (!isRetryRequest) {
         setLastIngredients(newIngredients);
-        setOffset(newOffset);
-      } else {
-        setOffset(newOffset);
       }
+      setSeenRecipeIds(newSeenIds);
 
       const botMessage = {
         id: messages.length + 2,
@@ -104,7 +103,7 @@ export default function ChatPage() {
         content:
           recipeList.length > 0
             ? { recipes: recipeList }
-            : "추천 결과가 없어요.",
+            : "추천 가능한 레시피가 없어요.",
         time: getCurrentTime(),
       };
 
@@ -140,7 +139,7 @@ export default function ChatPage() {
       },
     ]);
     setLastIngredients([]);
-    setOffset(0);
+    setSeenRecipeIds([]);
     hasPostedIntro.current = false;
   };
 

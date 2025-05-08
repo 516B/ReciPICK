@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from openai import OpenAI
-from collections import defaultdict
 import os
 from dotenv import load_dotenv
 from app.services.client import client as ts_client
@@ -18,12 +17,13 @@ class PromptRequest(BaseModel):
 @router.post("/recommend")
 async def recommend_recipe(req: PromptRequest):
     try:
-        # GPT에게 재료 추출 또는 '이전 재료 사용' 판단 요청
+        # ✅ GPT로부터 재료 추출
         extract_prompt = [
             {
                 "role": "system",
                 "content": (
                     "사용자의 입력 문장에서 요리에 사용할 식재료만 추출하세요. "
+                    "여러 개일 경우 쉼표(,)로 구분하여 출력하세요. "
                     "만약 사용자가 재료를 명시하지 않고 이전 재료로 다시 추천을 요청한 경우에는 "
                     "정확하게 '이전 재료 사용'이라고만 출력하세요.\n\n"
                     "예시:\n"
@@ -42,12 +42,14 @@ async def recommend_recipe(req: PromptRequest):
         )
 
         result_line = response.choices[0].message.content.strip()
-        print("GPT 응답 결과:", result_line)
+        print("🧪 GPT 응답 결과:", result_line)
 
         if result_line == "이전 재료 사용":
             ingredients = req.previous_ingredients
         else:
             ingredients = [i.strip() for i in result_line.split(",") if i.strip()]
+
+        print("🥕 최종 추출된 재료 리스트:", ingredients)
 
         if not ingredients:
             return {
@@ -56,49 +58,54 @@ async def recommend_recipe(req: PromptRequest):
                 "seen_recipe_ids": req.seen_recipe_ids,
             }
 
-        # Typesense 검색 및 정확한 재료 포함 여부 필터링
-        recipe_score = defaultdict(lambda: {"count": 0, "data": None})
+        # ✅ 재료별 검색 → 레시피 모으기
+        all_docs = dict()
 
         for ing in ingredients:
             result = ts_client.collections["recipes"].documents.search({
                 "q": ing,
                 "query_by": "ingredients",
-                "per_page": 50
+                "per_page": 100
             })
             for hit in result["hits"]:
                 doc = hit["document"]
-                real_ings = doc.get("ingredients", [])
+                all_docs[doc["id"]] = doc
 
-                # 정확한 재료 포함 여부 검사
-                if any(
-                    ing == real_ing.strip().split(":")[0]
-                    for real_ing in real_ings
-                ):
-                    recipe_score[doc["id"]]["count"] += 1
-                    recipe_score[doc["id"]]["data"] = doc
+        print(f"🔎 수집된 레시피 수: {len(all_docs)}")
 
-        # 재료 일치 수 기준 정렬
-        sorted_recipes = sorted(
-            recipe_score.values(),
-            key=lambda x: (-x["count"], x["data"]["title"])
-        )
+        # ✅ 실제 재료 포함 여부 확인
+        fully_matched = []
+        partial_matched = []
 
-        # 이전에 본 레시피 제외
-        unseen_recipes = [
-            r["data"] for r in sorted_recipes
-            if r["data"]["id"] not in req.seen_recipe_ids
-        ]
+        for doc in all_docs.values():
+            real_ings = [ri.strip().split(":")[0] for ri in doc.get("ingredients", [])]
+            matched = set()
 
-        top_recipes = unseen_recipes[:3]
+            for ing in ingredients:
+                if any(ing in real for real in real_ings):
+                    matched.add(ing)
+
+            if len(matched) == len(ingredients):
+                fully_matched.append(doc)
+            elif matched:
+                partial_matched.append(doc)
+
+        # ✅ 이전에 본 거 제거
+        unseen_fully = [r for r in fully_matched if r["id"] not in req.seen_recipe_ids]
+        top_recipes = unseen_fully[:3]
         updated_seen = req.seen_recipe_ids + [r["id"] for r in top_recipes]
+
+        # ✅ fallback: 일부 재료 포함된 레시피
+        if not top_recipes:
+            unseen_partial = [r for r in partial_matched if r["id"] not in updated_seen]
+            top_recipes = unseen_partial[:3]
+            updated_seen += [r["id"] for r in top_recipes]
 
         return {
             "recipes": [{"id": r["id"], "title": r["title"]} for r in top_recipes],
             "ingredients": ingredients,
             "seen_recipe_ids": updated_seen,
         }
-
-        
 
     except Exception as e:
         import traceback
