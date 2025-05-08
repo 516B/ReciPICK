@@ -157,7 +157,7 @@ export default function MainPage() {
         {searchText.trim() === "" && (
           <div
             onClick={() => navigate("/chat")}
-            className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform z-50"
+             className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform z-50"
           >
             <img
               src="/images/chat.png"

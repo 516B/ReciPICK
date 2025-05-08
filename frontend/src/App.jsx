@@ -5,6 +5,8 @@ import RecipePage from './pages/RecipePage';
 import ChatPage from './pages/ChatPage';
 import MyPage from "./pages/MyPage";
 import BookmarkPage from "./pages/BookmarkPage";
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/bookmarks" element={<BookmarkPage />} />
       <Route path="/mypage" element={<MyPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
     </Routes>
   );
 }
