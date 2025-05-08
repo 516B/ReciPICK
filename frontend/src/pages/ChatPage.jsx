@@ -56,7 +56,7 @@ export default function ChatPage() {
       ]);
       hasPostedIntro.current = true;
 
-      // 👉 뒤로 가기 시 recipe 정보가 다시 들어오지 않도록 제거
+      // 뒤로 가기 시 recipe 정보가 다시 들어오지 않도록 제거
       navigate(location.pathname, { replace: true });
     }
   }, [passedRecipe, navigate, location.pathname]);
