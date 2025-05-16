@@ -82,18 +82,26 @@ export default function RecipePage() {
         <div className="p-4 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">{recipe.title}</h2>
-            {!adjusted && (
-              <button
-                onClick={() =>
-                  navigate("/chat", {
-                    state: { recipe },
-                  })
-                }
-                className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
-              >
-                💬 Chat
-              </button>
-            )}
+            <button
+  onClick={() =>
+    navigate("/chat", {
+      state: {
+        recipe: adjusted
+          ? {
+              ...recipe,
+              ingredients: adjustedIngredients,
+              steps: adjustedSteps,
+              serving: adjustedServing,
+            }
+          : recipe,
+      },
+    })
+  }
+  className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
+>
+  💬 Chat
+</button>
+
           </div>
 
           <div className="flex justify-center text-center text-gray-500 text-sm px-4">
