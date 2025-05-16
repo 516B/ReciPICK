@@ -9,12 +9,20 @@ export default function ChatPage() {
   const location = useLocation();
   const passedRecipe = location.state?.recipe;
 
-  // 로컬에 저장된 레시피도 불러오기
   const storedRecipe = localStorage.getItem("recipeForChat");
   const recipeData = passedRecipe || (storedRecipe && JSON.parse(storedRecipe));
 
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const getCurrentDateTime = () =>
+    new Date().toLocaleString([], {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   const savedMessages = localStorage.getItem("chatMessages");
 
@@ -43,25 +51,41 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // 최초 진입 시 레시피 정보 메시지 + 로컬 저장
+  // ✅ 안내 메시지 중복 방지
   useEffect(() => {
     if (passedRecipe) {
       localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
     }
 
     if (recipeData && !hasPostedIntro.current) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          sender: "bot",
-          type: "text",
-          content: `"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${recipeData.ingredients?.join(", ")}`,
-          time: getCurrentTime(),
-        },
-      ]);
-      hasPostedIntro.current = true;
-      navigate(location.pathname, { replace: true });
+      setMessages((prev) => {
+        const alreadyExists = prev.some(
+          (m) =>
+            m.type === "text" &&
+            m.content.startsWith(`"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?`)
+        );
+
+        if (!alreadyExists) {
+          hasPostedIntro.current = true;
+
+          setTimeout(() => {
+            navigate(location.pathname, { replace: true });
+          }, 0);
+
+          return [
+            ...prev,
+            {
+              id: prev.length + 1,
+              sender: "bot",
+              type: "text",
+              content: `"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${recipeData.ingredients?.join(", ")}`,
+              time: getCurrentTime(),
+            },
+          ];
+        }
+
+        return prev;
+      });
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
@@ -84,7 +108,6 @@ export default function ChatPage() {
     try {
       const servingMatch = userText.match(/(\d+)\s*인분/);
 
-      // 인분 변경 요청 처리
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
 
@@ -95,19 +118,33 @@ export default function ChatPage() {
           target_serving: targetServing,
         });
 
-        const botMessage = {
+        const converted = res.data.result;
+
+        const notifyMessage = {
           id: messages.length + 2,
           sender: "bot",
           type: "text",
-          content: res.data.result || "변환 결과가 없습니다.",
+          content: `${targetServing} 기준으로 레시피를 변경했어요!`,
           time: getCurrentTime(),
         };
 
-        setMessages((prev) => [...prev, botMessage]);
+        const cardMessage = {
+          id: messages.length + 3,
+          sender: "bot",
+          type: "servingsCard",
+          content: {
+            title: converted.title,
+            serving: converted.serving,
+            ingredients: converted.ingredients,
+            steps: converted.steps,
+          },
+          time: getCurrentTime(),
+        };
+
+        setMessages((prev) => [...prev, notifyMessage, cardMessage]);
         return;
       }
 
-      // 일반 추천 요청 처리
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: [],
@@ -133,7 +170,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: prev.length + 2,
+          id: messages.length + 2,
           sender: "bot",
           type: "text",
           content: `오류 발생: ${errorMsg}`,
@@ -147,8 +184,11 @@ export default function ChatPage() {
     if (e.key === "Enter") handleSend();
   };
 
+  // ✅ 대화 초기화 시 안내 메시지 원인인 recipeForChat 도 제거
   const clearMessages = () => {
     localStorage.removeItem("chatMessages");
+    localStorage.removeItem("recipeForChat"); // 🧹 여기 추가됨
+
     setMessages([
       {
         id: 1,
@@ -158,8 +198,11 @@ export default function ChatPage() {
         time: getCurrentTime(),
       },
     ]);
+
     hasPostedIntro.current = false;
   };
+
+  const displayTimestamp = getCurrentDateTime();
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
@@ -171,9 +214,12 @@ export default function ChatPage() {
         />
 
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+          <div className="text-center text-xs text-gray-400 my-2">
+            {displayTimestamp}
+          </div>
+
           {messages.map((msg) => (
             <div key={msg.id}>
-              <div className="text-center text-xs text-gray-400">{msg.time}</div>
               <div
                 className={`flex items-start ${
                   msg.sender === "user" ? "justify-end" : "justify-start"
@@ -186,36 +232,61 @@ export default function ChatPage() {
                     className="w-12 h-12 rounded-full mr-2"
                   />
                 )}
-                <div
-                  className={`px-4 py-2 text-sm rounded-xl max-w-[75%] whitespace-pre-wrap ${
-                    msg.sender === "bot"
-                      ? "bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5"
-                      : "bg-[#FBF5EF] text-gray-800 rounded-tr-none"
-                  }`}
-                >
-                  {msg.type === "text" &&
-                    msg.content.split("\n").map((line, i) => (
-                      <span key={i}>
-                        {line}
-                        <br />
-                      </span>
-                    ))}
-
-                  {msg.type === "recommendation" && (
-                    <ul className="list-disc list-inside space-y-1">
-                      {msg.content.recipes.map((recipe) => (
-                        <li key={recipe.id}>
-                          <Link
-                            to={`/recipe/${recipe.id}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {recipe.title}
-                          </Link>
-                        </li>
+                {msg.type !== "servingsCard" ? (
+                  <div
+                    className={`px-4 py-2 text-sm rounded-xl max-w-[75%] whitespace-pre-wrap ${
+                      msg.sender === "bot"
+                        ? "bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5"
+                        : "bg-[#FBF5EF] text-gray-800 rounded-tr-none"
+                    }`}
+                  >
+                    {msg.type === "text" &&
+                      msg.content.split("\n").map((line, i) => (
+                        <span key={i}>
+                          {line}
+                          <br />
+                        </span>
                       ))}
-                    </ul>
-                  )}
-                </div>
+
+                    {msg.type === "recommendation" && (
+                      <ul className="list-disc list-inside space-y-1">
+                        {msg.content.recipes.map((recipe) => (
+                          <li key={recipe.id}>
+                            <Link
+                              to={`/recipe/${recipe.id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {recipe.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    onClick={() =>
+                      navigate(`/recipe/${recipeData.id}`, {
+                        state: {
+                          adjusted: true,
+                          adjustedIngredients: msg.content.ingredients,
+                          adjustedSteps: msg.content.steps,
+                          adjustedServing: msg.content.serving,
+                        },
+                      })
+                    }
+                    className="bg-[#FBF5EF] cursor-pointer hover:shadow-md transition p-4 rounded-xl text-sm space-y-2 text-gray-800 max-w-[90%]"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="text-base font-semibold text-gray-900">
+                        {msg.content.title}
+                      </div>
+                      <div className="text-xs text-[#18881C] font-medium">
+                        {msg.content.serving}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
