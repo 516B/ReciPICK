@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 # 라우터들 import
 from app.api import chat, category, recipe, title
 from app.api.gpt import recommend  
+from app.api.gpt import servings
 
 app = FastAPI()
 
-# CORS 설정 (프론트와 통신 가능하게)
+# CORS 설정 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,3 +23,4 @@ app.include_router(category.router,   prefix="/category")   # /category?name=...
 app.include_router(recipe.router,     prefix="/recipe")     # /recipe/:id
 app.include_router(recommend.router,  prefix="/gpt")        # /gpt/recommend
 app.include_router(title.router,      prefix="/search")     # /search/title
+app.include_router(servings.router, prefix="/gpt")          # /gpt/servings

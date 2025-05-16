@@ -17,7 +17,7 @@ class PromptRequest(BaseModel):
 @router.post("/recommend")
 async def recommend_recipe(req: PromptRequest):
     try:
-        # ✅ GPT로부터 재료 추출
+        # GPT로부터 재료 추출
         extract_prompt = [
             {
                 "role": "system",
@@ -42,14 +42,14 @@ async def recommend_recipe(req: PromptRequest):
         )
 
         result_line = response.choices[0].message.content.strip()
-        print("🧪 GPT 응답 결과:", result_line)
+        print("GPT 응답 결과:", result_line)
 
         if result_line == "이전 재료 사용":
             ingredients = req.previous_ingredients
         else:
             ingredients = [i.strip() for i in result_line.split(",") if i.strip()]
 
-        print("🥕 최종 추출된 재료 리스트:", ingredients)
+        print("최종 추출된 재료 리스트:", ingredients)
 
         if not ingredients:
             return {
@@ -58,7 +58,7 @@ async def recommend_recipe(req: PromptRequest):
                 "seen_recipe_ids": req.seen_recipe_ids,
             }
 
-        # ✅ 재료별 검색 → 레시피 모으기
+        # 재료별 검색 → 레시피 모으기
         all_docs = dict()
 
         for ing in ingredients:
@@ -73,7 +73,7 @@ async def recommend_recipe(req: PromptRequest):
 
         print(f"🔎 수집된 레시피 수: {len(all_docs)}")
 
-        # ✅ 실제 재료 포함 여부 확인
+        # 실제 재료 포함 여부 확인
         fully_matched = []
         partial_matched = []
 
@@ -90,12 +90,12 @@ async def recommend_recipe(req: PromptRequest):
             elif matched:
                 partial_matched.append(doc)
 
-        # ✅ 이전에 본 거 제거
+        # 이전에 본 거 제거
         unseen_fully = [r for r in fully_matched if r["id"] not in req.seen_recipe_ids]
         top_recipes = unseen_fully[:3]
         updated_seen = req.seen_recipe_ids + [r["id"] for r in top_recipes]
 
-        # ✅ fallback: 일부 재료 포함된 레시피
+        # fallback: 일부 재료 포함된 레시피
         if not top_recipes:
             unseen_partial = [r for r in partial_matched if r["id"] not in updated_seen]
             top_recipes = unseen_partial[:3]

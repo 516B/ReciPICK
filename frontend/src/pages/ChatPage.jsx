@@ -9,6 +9,10 @@ export default function ChatPage() {
   const location = useLocation();
   const passedRecipe = location.state?.recipe;
 
+  // 로컬에 저장된 레시피도 불러오기
+  const storedRecipe = localStorage.getItem("recipeForChat");
+  const recipeData = passedRecipe || (storedRecipe && JSON.parse(storedRecipe));
+
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -28,8 +32,6 @@ export default function ChatPage() {
         ]
   );
   const [inputText, setInputText] = useState("");
-  const [lastIngredients, setLastIngredients] = useState([]);
-  const [seenRecipeIds, setSeenRecipeIds] = useState([]);
   const chatEndRef = useRef(null);
   const hasPostedIntro = useRef(false);
 
@@ -41,25 +43,27 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // 레시피 상세에서 넘어온 경우 자동 메시지 출력
+  // 최초 진입 시 레시피 정보 메시지 + 로컬 저장
   useEffect(() => {
-    if (passedRecipe && !hasPostedIntro.current) {
+    if (passedRecipe) {
+      localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
+    }
+
+    if (recipeData && !hasPostedIntro.current) {
       setMessages((prev) => [
         ...prev,
         {
           id: prev.length + 1,
           sender: "bot",
           type: "text",
-          content: `"${passedRecipe.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${passedRecipe.ingredients?.join(", ")}`,
+          content: `"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${recipeData.ingredients?.join(", ")}`,
           time: getCurrentTime(),
         },
       ]);
       hasPostedIntro.current = true;
-
-      // 뒤로가기 시 recipe 정보 중복 방지
       navigate(location.pathname, { replace: true });
     }
-  }, [passedRecipe, navigate, location.pathname]);
+  }, [passedRecipe, recipeData, navigate, location.pathname]);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -78,23 +82,39 @@ export default function ChatPage() {
     setInputText("");
 
     try {
-      const isRetryRequest = /다시\s*추천|다른\s*레시피/.test(userText);
+      const servingMatch = userText.match(/(\d+)\s*인분/);
 
+      // 인분 변경 요청 처리
+      if (servingMatch && recipeData) {
+        const targetServing = `${servingMatch[1]}인분`;
+
+        const res = await axios.post("http://localhost:8000/gpt/servings", {
+          ingredients: recipeData.ingredients,
+          steps: recipeData.steps,
+          current_serving: recipeData.serving,
+          target_serving: targetServing,
+        });
+
+        const botMessage = {
+          id: messages.length + 2,
+          sender: "bot",
+          type: "text",
+          content: res.data.result || "변환 결과가 없습니다.",
+          time: getCurrentTime(),
+        };
+
+        setMessages((prev) => [...prev, botMessage]);
+        return;
+      }
+
+      // 일반 추천 요청 처리
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
-        previous_ingredients: lastIngredients,
-        seen_recipe_ids: seenRecipeIds, // ✅ 이전 레시피 전달
+        previous_ingredients: [],
+        offset: 0,
       });
 
       const recipeList = res.data.recipes;
-      const newIngredients = res.data.ingredients;
-      const newSeenIds = res.data.seen_recipe_ids;
-
-      // ✅ 상태 업데이트
-      if (!isRetryRequest) {
-        setLastIngredients(newIngredients);
-      }
-      setSeenRecipeIds(newSeenIds);
 
       const botMessage = {
         id: messages.length + 2,
@@ -103,7 +123,7 @@ export default function ChatPage() {
         content:
           recipeList.length > 0
             ? { recipes: recipeList }
-            : "추천 가능한 레시피가 없어요.",
+            : "추천 결과가 없어요.",
         time: getCurrentTime(),
       };
 
@@ -113,7 +133,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: prev.length + 1,
+          id: prev.length + 2,
           sender: "bot",
           type: "text",
           content: `오류 발생: ${errorMsg}`,
@@ -138,8 +158,6 @@ export default function ChatPage() {
         time: getCurrentTime(),
       },
     ]);
-    setLastIngredients([]);
-    setSeenRecipeIds([]);
     hasPostedIntro.current = false;
   };
 
