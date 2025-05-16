@@ -116,6 +116,7 @@ export default function ChatPage() {
         const targetServing = `${servingMatch[1]}인분`;
 
         const res = await axios.post("http://localhost:8000/gpt/servings", {
+          title: recipeData.title,
           ingredients: recipeData.ingredients,
           steps: recipeData.steps,
           current_serving: recipeData.serving,
