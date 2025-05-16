@@ -9,12 +9,13 @@ export default function ChatPage() {
   const location = useLocation();
   const passedRecipe = location.state?.recipe;
 
+  // 레시피 데이터 가져오기 (props/state/localStorage)
   const storedRecipe = localStorage.getItem("recipeForChat");
   const recipeData = passedRecipe || (storedRecipe && JSON.parse(storedRecipe));
 
+  // 시간 관련 유틸
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
   const getCurrentDateTime = () =>
     new Date().toLocaleString([], {
       year: "numeric",
@@ -24,8 +25,8 @@ export default function ChatPage() {
       minute: "2-digit",
     });
 
+  // 상태 관리
   const savedMessages = localStorage.getItem("chatMessages");
-
   const [messages, setMessages] = useState(
     savedMessages
       ? JSON.parse(savedMessages)
@@ -43,20 +44,25 @@ export default function ChatPage() {
   const chatEndRef = useRef(null);
   const hasPostedIntro = useRef(false);
 
+  // 중복 추천 방지/이전 재료 추적
+  const [previousIngredients, setPreviousIngredients] = useState([]);
+  const [seenRecipeIds, setSeenRecipeIds] = useState([]);
+
+  // 자동 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // 메시지 로컬 저장
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // ✅ 안내 메시지 중복 방지
+  // 레시피 정보 및 첫 인트로 메시지 처리
   useEffect(() => {
     if (passedRecipe) {
       localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
     }
-
     if (recipeData && !hasPostedIntro.current) {
       setMessages((prev) => {
         const alreadyExists = prev.some(
@@ -64,34 +70,30 @@ export default function ChatPage() {
             m.type === "text" &&
             m.content.startsWith(`"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?`)
         );
-
         if (!alreadyExists) {
           hasPostedIntro.current = true;
-
           setTimeout(() => {
             navigate(location.pathname, { replace: true });
           }, 0);
-
           return [
             ...prev,
             {
               id: prev.length + 1,
               sender: "bot",
               type: "text",
-              content: `"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?\n재료: ${recipeData.ingredients?.join(", ")}`,
+              content: `"${recipeData.title}" 레시피에 대해 더 알고 싶으신가요?`,
               time: getCurrentTime(),
             },
           ];
         }
-
         return prev;
       });
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
+  // 메시지 전송 처리
   const handleSend = async () => {
     if (!inputText.trim()) return;
-
     const userText = inputText.trim();
 
     const newMessage = {
@@ -106,8 +108,10 @@ export default function ChatPage() {
     setInputText("");
 
     try {
-      const servingMatch = userText.match(/(\d+)\s*인분/);
+      // 다양한 '인분' 패턴 대응 (인분/명/인/배)
+      const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
 
+      // 인분 변환
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
 
@@ -120,6 +124,7 @@ export default function ChatPage() {
 
         const converted = res.data.result;
 
+        // 안내 메시지 + 카드 메시지
         const notifyMessage = {
           id: messages.length + 2,
           sender: "bot",
@@ -127,7 +132,6 @@ export default function ChatPage() {
           content: `${targetServing} 기준으로 레시피를 변경했어요!`,
           time: getCurrentTime(),
         };
-
         const cardMessage = {
           id: messages.length + 3,
           sender: "bot",
@@ -140,18 +144,20 @@ export default function ChatPage() {
           },
           time: getCurrentTime(),
         };
-
         setMessages((prev) => [...prev, notifyMessage, cardMessage]);
         return;
       }
 
+      // 추천(중복 방지, 재료 추적 포함)
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
-        previous_ingredients: [],
-        offset: 0,
+        previous_ingredients: previousIngredients,
+        seen_recipe_ids: seenRecipeIds,
       });
 
       const recipeList = res.data.recipes;
+      setPreviousIngredients(res.data.ingredients || []);
+      setSeenRecipeIds(res.data.seen_recipe_ids || []);
 
       const botMessage = {
         id: messages.length + 2,
@@ -180,15 +186,15 @@ export default function ChatPage() {
     }
   };
 
+  // Enter로 전송
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSend();
   };
 
-  // ✅ 대화 초기화 시 안내 메시지 원인인 recipeForChat 도 제거
+  // 대화/상태 초기화
   const clearMessages = () => {
     localStorage.removeItem("chatMessages");
-    localStorage.removeItem("recipeForChat"); // 🧹 여기 추가됨
-
+    localStorage.removeItem("recipeForChat");
     setMessages([
       {
         id: 1,
@@ -198,8 +204,9 @@ export default function ChatPage() {
         time: getCurrentTime(),
       },
     ]);
-
     hasPostedIntro.current = false;
+    setPreviousIngredients([]);
+    setSeenRecipeIds([]);
   };
 
   const displayTimestamp = getCurrentDateTime();
@@ -264,6 +271,7 @@ export default function ChatPage() {
                     )}
                   </div>
                 ) : (
+                  // servingsCard 표시 (클릭 시 레시피 페이지 이동)
                   <div
                     onClick={() =>
                       navigate(`/recipe/${recipeData.id}`, {
@@ -275,16 +283,31 @@ export default function ChatPage() {
                         },
                       })
                     }
-                    className="bg-[#FBF5EF] cursor-pointer hover:shadow-md transition p-4 rounded-xl text-sm space-y-2 text-gray-800 max-w-[90%]"
+                    className="cursor-pointer border border-gray-300 bg-[#FFFFFF] p-4 rounded-xl shadow-sm hover:shadow-md transition max-w-[95%]"
                   >
-                    <div className="flex justify-between items-center">
-                      <div className="text-base font-semibold text-gray-900">
-                        {msg.content.title}
-                      </div>
-                      <div className="text-xs text-[#18881C] font-medium">
-                        {msg.content.serving}
-                      </div>
+                    <div className="text-base font-bold text-gray-900">
+                      {msg.content.title} ({msg.content.serving})
                     </div>
+
+                    <div className="text-xs text-gray-500 mt-1 mb-2">
+                      기존 {recipeData.serving}에서 {msg.content.serving}으로 조정된 레시피입니다.
+                    </div>
+
+                    <div className="text-sm text-gray-800 font-semibold mb-1">재료</div>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-0.5">
+                      {msg.content.ingredients.slice(0, 3).map((item, idx) => {
+                        const [name, amount] = item.split(":");
+                        return (
+                          <li key={idx}>
+                            <span className="text-gray-800">{name.trim()}</span>
+                            {amount && `: ${amount.trim()}`}
+                          </li>
+                        );
+                      })}
+                      {msg.content.ingredients.length > 3 && (
+                        <li className="text-gray-400 text-xs mt-1">... 더보기</li>
+                      )}
+                    </ul>
                   </div>
                 )}
               </div>
