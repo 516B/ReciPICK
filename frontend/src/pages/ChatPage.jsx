@@ -9,11 +9,9 @@ export default function ChatPage() {
   const location = useLocation();
   const passedRecipe = location.state?.recipe;
 
-  // 레시피 데이터 가져오기 (props/state/localStorage)
   const storedRecipe = localStorage.getItem("recipeForChat");
   const recipeData = passedRecipe || (storedRecipe && JSON.parse(storedRecipe));
 
-  // 시간 관련 유틸
   const getCurrentTime = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const getCurrentDateTime = () =>
@@ -25,7 +23,6 @@ export default function ChatPage() {
       minute: "2-digit",
     });
 
-  // 상태 관리
   const savedMessages = localStorage.getItem("chatMessages");
   const [messages, setMessages] = useState(
     savedMessages
@@ -44,21 +41,17 @@ export default function ChatPage() {
   const chatEndRef = useRef(null);
   const hasPostedIntro = useRef(false);
 
-  // 중복 추천 방지/이전 재료 추적
   const [previousIngredients, setPreviousIngredients] = useState([]);
   const [seenRecipeIds, setSeenRecipeIds] = useState([]);
 
-  // 자동 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 메시지 로컬 저장
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // 레시피 정보 및 첫 인트로 메시지 처리
   useEffect(() => {
     if (passedRecipe) {
       localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
@@ -91,7 +84,6 @@ export default function ChatPage() {
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
-  // 메시지 전송 처리
   const handleSend = async () => {
     if (!inputText.trim()) return;
     const userText = inputText.trim();
@@ -108,10 +100,42 @@ export default function ChatPage() {
     setInputText("");
 
     try {
-      // 다양한 '인분' 패턴 대응 (인분/명/인/배)
-      const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
+      // 난이도/시간 필터 우선 적용
+      const levelMatch = userText.match(/(초급|중급|고급|아무나)/);
+      const timeMatch = userText.match(/(\d+)\s*분/);
 
-      // 인분 변환
+      if (levelMatch || timeMatch) {
+        const difficulty = levelMatch?.[1];
+        const maxTime = timeMatch?.[1];
+
+        const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
+          params: {
+            difficulty,
+            max_time: maxTime,
+            page: 1,
+            per_page: 5,
+          },
+        });
+
+        const recipes = res.data.recipes || [];
+
+        const botMessage = {
+          id: messages.length + 2,
+          sender: "bot",
+          type: recipes.length > 0 ? "recommendation" : "text",
+          content:
+            recipes.length > 0
+              ? { recipes }
+              : `${difficulty ? difficulty : ""}${maxTime ? ` (${maxTime}분 이내)` : ""} 요리를 찾지 못했어요.`,
+          time: getCurrentTime(),
+        };
+
+        setMessages((prev) => [...prev, botMessage]);
+        return;
+      }
+
+      //  인분 변환
+      const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
 
@@ -125,7 +149,6 @@ export default function ChatPage() {
 
         const converted = res.data.result;
 
-        // 안내 메시지 + 카드 메시지
         const notifyMessage = {
           id: messages.length + 2,
           sender: "bot",
@@ -138,6 +161,7 @@ export default function ChatPage() {
           sender: "bot",
           type: "servingsCard",
           content: {
+            id: recipeData.id,
             title: converted.title,
             serving: converted.serving,
             ingredients: converted.ingredients,
@@ -149,7 +173,7 @@ export default function ChatPage() {
         return;
       }
 
-      // 추천(중복 방지, 재료 추적 포함)
+      // GPT 추천
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: previousIngredients,
@@ -187,12 +211,10 @@ export default function ChatPage() {
     }
   };
 
-  // Enter로 전송
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSend();
   };
 
-  // 대화/상태 초기화
   const clearMessages = () => {
     localStorage.removeItem("chatMessages");
     localStorage.removeItem("recipeForChat");
@@ -215,11 +237,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
       <div className="w-full max-w-md flex flex-col flex-1">
-        <Header
-          title="나만의 레시피 검색"
-          showBack
-          onBack={() => navigate(-1)}
-        />
+        <Header title="나만의 레시피 검색" showBack onBack={() => navigate(-1)} />
 
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
           <div className="text-center text-xs text-gray-400 my-2">
@@ -228,26 +246,15 @@ export default function ChatPage() {
 
           {messages.map((msg) => (
             <div key={msg.id}>
-              <div
-                className={`flex items-start ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
-                } mt-1`}
-              >
+              <div className={`flex items-start ${msg.sender === "user" ? "justify-end" : "justify-start"} mt-1`}>
                 {msg.sender === "bot" && (
-                  <img
-                    src="/images/chatbot.png"
-                    alt="Bot"
-                    className="w-12 h-12 rounded-full mr-2"
-                  />
+                  <img src="/images/chatbot.png" alt="Bot" className="w-12 h-12 rounded-full mr-2" />
                 )}
                 {msg.type !== "servingsCard" ? (
-                  <div
-                    className={`px-4 py-2 text-sm rounded-xl max-w-[75%] whitespace-pre-wrap ${
-                      msg.sender === "bot"
-                        ? "bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5"
-                        : "bg-[#FBF5EF] text-gray-800 rounded-tr-none"
-                    }`}
-                  >
+                  <div className={`px-4 py-2 text-sm rounded-xl max-w-[75%] whitespace-pre-wrap ${msg.sender === "bot"
+                      ? "bg-[#ffcb8c] text-[#7a3e0d] rounded-tl-none mt-1.5"
+                      : "bg-[#FBF5EF] text-gray-800 rounded-tr-none"
+                    }`}>
                     {msg.type === "text" &&
                       msg.content.split("\n").map((line, i) => (
                         <span key={i}>
@@ -260,10 +267,7 @@ export default function ChatPage() {
                       <ul className="list-disc list-inside space-y-1">
                         {msg.content.recipes.map((recipe) => (
                           <li key={recipe.id}>
-                            <Link
-                              to={`/recipe/${recipe.id}`}
-                              className="text-blue-600 hover:underline"
-                            >
+                            <Link to={`/recipe/${recipe.id}`} className="text-blue-600 hover:underline">
                               {recipe.title}
                             </Link>
                           </li>
@@ -272,10 +276,9 @@ export default function ChatPage() {
                     )}
                   </div>
                 ) : (
-                  // servingsCard 표시 (클릭 시 레시피 페이지 이동)
                   <div
                     onClick={() =>
-                      navigate(`/recipe/${recipeData.id}`, {
+                      navigate(`/recipe/${msg.content.id}`, {
                         state: {
                           adjusted: true,
                           adjustedIngredients: msg.content.ingredients,
@@ -289,11 +292,9 @@ export default function ChatPage() {
                     <div className="text-base font-bold text-gray-900">
                       {msg.content.title} ({msg.content.serving})
                     </div>
-
                     <div className="text-xs text-gray-500 mt-1 mb-2">
                       기존 {recipeData.serving}에서 {msg.content.serving}으로 조정된 레시피입니다.
                     </div>
-
                     <div className="text-sm text-gray-800 font-semibold mb-1">재료</div>
                     <ul className="list-disc list-inside text-sm text-gray-700 space-y-0.5">
                       {msg.content.ingredients.slice(0, 3).map((item, idx) => {
