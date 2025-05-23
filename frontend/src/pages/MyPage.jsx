@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import Footer from "../components/Footer"; 
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -10,15 +11,13 @@ export default function MyPage() {
 
   return (
     <div className="flex flex-col min-h-screen items-center bg-[#f7f8fa]">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md flex-grow">
         <Header title="마이페이지" showBack onBack={() => navigate(-1)} />
 
         {isLoggedIn ? (
           <div className="p-6 mt-20 flex flex-col gap-4">
             <h2 className="text-lg font-semibold">안녕하세요!</h2>
-            <p className="text-sm text-gray-600">
-              마이페이지 입니다.
-            </p>
+            <p className="text-sm text-gray-600">마이페이지 입니다.</p>
             <button
               onClick={() => setIsLoggedIn(false)}
               className="text-xs text-red-400 underline"
@@ -43,6 +42,7 @@ export default function MyPage() {
           </div>
         )}
       </div>
+      <Footer /> {}
     </div>
   );
 }
