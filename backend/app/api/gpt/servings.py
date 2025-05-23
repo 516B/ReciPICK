@@ -40,14 +40,14 @@ async def convert_servings(req: ServingsRequest):
             f"- step에선 인분에 따라 조정된 표현이 자연스럽게 반영되도록 작성하세요.\n\n"
             f"출력 형식:\n"
             f"""
-{{
-  \"title\": \"{req.title}\",
-  \"serving\": \"{req.target_serving}\",
-  \"ingredients\": [\"재료1: 양\", \"재료2: 양\"],
-  \"steps\": [\"조리1\", \"조리2\"]
-}}
-""" +
-            f"\n레시피 제목: {req.title}\n\n"
+            {{
+            \"title\": \"{req.title}\",
+            \"serving\": \"{req.target_serving}\",
+            \"ingredients\": [\"재료1: 양\", \"재료2: 양\"],
+            \"steps\": [\"조리1\", \"조리2\"]
+            }}
+            """ +
+                        f"\n레시피 제목: {req.title}\n\n"
             f"재료:\n{ingredients_text}\n\n"
             f"조리 순서:\n{steps_text}"
         )

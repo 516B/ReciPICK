@@ -5,7 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import chat, category, recipe, title
 from app.api.gpt import recommend  
 from app.api.gpt import servings
+from app.api.gpt import substitute
 from app.api import filter
+
 
 app = FastAPI()
 
@@ -25,4 +27,6 @@ app.include_router(recipe.router,     prefix="/recipe")     # /recipe/:id
 app.include_router(recommend.router,  prefix="/gpt")        # /gpt/recommend
 app.include_router(title.router,      prefix="/search")     # /search/title
 app.include_router(servings.router, prefix="/gpt")          # /gpt/servings
+app.include_router(substitute.router, prefix="/gpt")        # /gpt/substitute
 app.include_router(filter.router, prefix="/filter")  # /filter/difficulty-time
+
