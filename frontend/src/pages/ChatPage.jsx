@@ -43,6 +43,10 @@ export default function ChatPage() {
 
   const [previousIngredients, setPreviousIngredients] = useState([]);
   const [seenRecipeIds, setSeenRecipeIds] = useState([]);
+  const [lastFilterCondition, setLastFilterCondition] = useState(null);
+  const [filterPage, setFilterPage] = useState(1);
+
+  const displayTimestamp = getCurrentDateTime();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,56 +89,123 @@ export default function ChatPage() {
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
     const userText = inputText.trim();
-
-    const newMessage = {
-      id: messages.length + 1,
-      sender: "user",
-      type: "text",
-      content: userText,
-      time: getCurrentTime(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    if (!userText) return;
+    setMessages((prev) => [...prev, { id: prev.length + 1, sender: "user", type: "text", content: userText, time: getCurrentTime() }]);
     setInputText("");
 
     try {
-      // 난이도/시간 필터 우선 적용
-      const levelMatch = userText.match(/(초급|중급|고급|아무나)/);
-      const timeMatch = userText.match(/(\d+)\s*분/);
+  const levelMatch = userText.match(/(초급|중급|고급|아무나)/);
+  const timeMatch = userText.match(/(\d+)\s*분\s*(이내|이상|넘는|초과|이하)?/);
+  const hourMatch = userText.match(/(\d+)\s*시간\s*(이내|이상|넘는|초과|이하)?/);  
 
-      if (levelMatch || timeMatch) {
-        const difficulty = levelMatch?.[1];
-        const maxTime = timeMatch?.[1];
+  // 1. 난이도/시간 기반 필터 처리
+if (levelMatch || timeMatch || hourMatch) {
+  const difficulty = levelMatch?.[1];
 
-        const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
-          params: {
-            difficulty,
-            max_time: maxTime,
-            page: 1,
-            per_page: 5,
-          },
-        });
+  let maxTime = null;
+  let direction = "";
+  let cookTimeString = null;
 
-        const recipes = res.data.recipes || [];
+  if (timeMatch) {
+    maxTime = parseInt(timeMatch[1], 10);
+    direction = timeMatch[2] || "";
+  } else if (hourMatch) {
+    const hour = hourMatch[1];
+    direction = hourMatch[2] || "";
 
-        const botMessage = {
-          id: messages.length + 2,
-          sender: "bot",
-          type: recipes.length > 0 ? "recommendation" : "text",
-          content:
-            recipes.length > 0
-              ? { recipes }
-              : `${difficulty ? difficulty : ""}${maxTime ? ` (${maxTime}분 이내)` : ""} 요리를 찾지 못했어요.`,
-          time: getCurrentTime(),
-        };
+    // 2시간 이상은 문자열 필터로 처리
+    if (hour === "2" && ["이상", "넘는", "초과"].some(w => direction.includes(w))) {
+      cookTimeString = "2시간 이상";
+    } else {
+      maxTime = parseInt(hour, 10) * 60;
+    }
+  }
 
-        setMessages((prev) => [...prev, botMessage]);
-        return;
-      }
+  let filterOperator = "<=";
+  if (["이상", "넘는", "초과"].some(word => direction.includes(word))) {
+    filterOperator = ">=";
+  }
 
-      //  인분 변환
+
+  setLastFilterCondition({
+    difficulty,
+    maxTime: cookTimeString ? null : `${filterOperator}${maxTime}`,
+    cookTime: cookTimeString || null,
+  });
+
+ 
+  const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
+    params: {
+      ...(difficulty && { difficulty }),
+      ...(cookTimeString
+        ? { cook_time: cookTimeString } 
+        : maxTime !== null && { max_time: `${filterOperator}${maxTime}` }),
+      page: 1,
+      per_page: 5,
+      exclude_ids: seenRecipeIds,
+    },
+  });
+
+  const recipes = res.data.recipes || [];
+  const botMessage = {
+    id: messages.length + 2,
+    sender: "bot",
+    type: recipes.length > 0 ? "recommendation" : "text",
+    content:
+      recipes.length > 0
+        ? { recipes }
+        : `${difficulty || ""} ${
+            cookTimeString
+              ? `(조리 시간: ${cookTimeString})`
+              : maxTime
+              ? `(${filterOperator}${maxTime}분)`
+              : ""
+          } 요리를 찾지 못했어요.`,
+    time: getCurrentTime(),
+  };
+
+  setMessages((prev) => [...prev, botMessage]);
+  return;
+}
+      // 1-2. 필터 처리 다른 레시피 추천
+      if (userText.includes("다른") && lastFilterCondition !== null) {
+  const nextPage = filterPage + 1;
+
+  const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
+    params: {
+      ...(lastFilterCondition.difficulty && {
+        difficulty: lastFilterCondition.difficulty,
+      }),
+      ...(lastFilterCondition.cookTime
+        ? { cook_time: lastFilterCondition.cookTime }
+        : lastFilterCondition.maxTime && {
+            max_time: lastFilterCondition.maxTime,
+          }),
+      page: nextPage,
+      per_page: 5,
+      exclude_ids: seenRecipeIds,
+    },
+  });
+
+  const recipes = res.data.recipes || [];
+  setFilterPage(nextPage);
+
+  const botMessage = {
+    id: messages.length + 2,
+    sender: "bot",
+    type: recipes.length > 0 ? "recommendation" : "text",
+    content:
+      recipes.length > 0 ? { recipes } : "더 이상 추천할 레시피가 없어요!",
+    time: getCurrentTime(),
+  };
+
+  setMessages((prev) => [...prev, botMessage]);
+  return;
+}
+
+
+      // 2. GPT 인분 변환 처리
       const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
@@ -148,7 +219,6 @@ export default function ChatPage() {
         });
 
         const converted = res.data.result;
-
         const notifyMessage = {
           id: messages.length + 2,
           sender: "bot",
@@ -173,7 +243,7 @@ export default function ChatPage() {
         return;
       }
 
-      // GPT 추천
+      // 3. GPT 추천 처리
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: previousIngredients,
@@ -188,51 +258,48 @@ export default function ChatPage() {
         id: messages.length + 2,
         sender: "bot",
         type: recipeList.length > 0 ? "recommendation" : "text",
-        content:
-          recipeList.length > 0
-            ? { recipes: recipeList }
-            : "추천 결과가 없어요.",
+        content: recipeList.length > 0 ? { recipes: recipeList } : "추천 결과가 없어요.",
         time: getCurrentTime(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: messages.length + 2,
-          sender: "bot",
-          type: "text",
-          content: `오류 발생: ${errorMsg}`,
-          time: getCurrentTime(),
-        },
-      ]);
+      setMessages((prev) => [...prev, {
+        id: messages.length + 2,
+        sender: "bot",
+        type: "text",
+        content: `오류 발생: ${errorMsg}`,
+        time: getCurrentTime(),
+      }]);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSend();
-  };
-
   const clearMessages = () => {
-    localStorage.removeItem("chatMessages");
-    localStorage.removeItem("recipeForChat");
-    setMessages([
-      {
-        id: 1,
-        sender: "bot",
-        type: "text",
-        content: "나만의 레시피를 검색해보세요!",
-        time: getCurrentTime(),
-      },
-    ]);
-    hasPostedIntro.current = false;
-    setPreviousIngredients([]);
-    setSeenRecipeIds([]);
-  };
+  localStorage.removeItem("chatMessages");
+  localStorage.removeItem("recipeForChat");
+  setMessages([
+    {
+      id: 1,
+      sender: "bot",
+      type: "text",
+      content: "나만의 레시피를 검색해보세요!",
+      time: getCurrentTime(),
+    },
+  ]);
+  hasPostedIntro.current = false;
+  setPreviousIngredients([]);
+  setSeenRecipeIds([]);
+  setLastFilterCondition(null);
+  setFilterPage(1);
+};
 
-  const displayTimestamp = getCurrentDateTime();
+const handleKeyDown = (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    handleSend();
+  }
+};
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">

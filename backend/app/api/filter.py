@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query
+from typing import List
 from app.services.client import client
 
 router = APIRouter()
@@ -6,16 +7,30 @@ router = APIRouter()
 @router.get("/difficulty-time")
 async def filter_by_difficulty_time(
     difficulty: str = Query(None),
-    max_time: int = Query(None),
+    max_time: str = Query(None),
+    cook_time: str = Query(None), 
     page: int = Query(1),
-    per_page: int = Query(20)
+    per_page: int = Query(20),
+    exclude_ids: List[str] = Query(None)
 ):
     filters = []
 
     if difficulty:
         filters.append(f"difficulty:={difficulty}")
     if max_time is not None:
-        filters.append(f"cook_time_minutes:<={max_time}")
+      import re
+      match = re.match(r"(>=|<=|>|<)?(\d+)", str(max_time))
+      if match:
+        operator = match.group(1) or "<="
+        value = match.group(2)
+        filters.append(f"cook_time_minutes:{operator}{value}")
+    
+    if cook_time:
+        filters.append(f"cook_time:='{cook_time}'")
+
+    if exclude_ids:
+        for eid in exclude_ids:
+            filters.append(f"id:!={eid}")
 
     filter_query = " && ".join(filters) if filters else ""
 
