@@ -4,6 +4,7 @@ import { Clock, User, Star } from "lucide-react";
 import Header from "../components/Header";
 import axios from "axios";
 
+
 function getStarsByDifficulty(difficulty) {
   switch (difficulty) {
     case "아무나":
@@ -18,18 +19,23 @@ function getStarsByDifficulty(difficulty) {
   }
 }
 
+
 export default function RecipePage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
+
   const adjusted = location.state?.adjusted;
   const adjustedIngredients = location.state?.adjustedIngredients;
   const adjustedSteps = location.state?.adjustedSteps;
   const adjustedServing = location.state?.adjustedServing;
+  const selectedAlternative = location.state?.selectedAlternative || {};
+
 
   const [recipe, setRecipe] = useState(null);
   const [error, setError] = useState("");
+
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -44,8 +50,10 @@ export default function RecipePage() {
     fetchRecipe();
   }, [id]);
 
+
   if (error) return <div className="p-4">{error}</div>;
   if (!recipe) return <div className="p-4">로딩 중...</div>;
+
 
   if (
     recipe.title === "정보 없음" ||
@@ -55,6 +63,7 @@ export default function RecipePage() {
   ) {
     return <div className="p-4 text-gray-500">해당 레시피 정보를 불러올 수 없습니다.</div>;
   }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 items-center">
@@ -71,6 +80,7 @@ export default function RecipePage() {
           onBack={() => navigate(-1)}
         />
 
+
         <div className="relative">
           <img
             src={recipe.image_url}
@@ -79,30 +89,31 @@ export default function RecipePage() {
           />
         </div>
 
+
         <div className="p-4 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">{recipe.title}</h2>
             <button
-  onClick={() =>
-    navigate("/chat", {
-      state: {
-        recipe: adjusted
-          ? {
-              ...recipe,
-              ingredients: adjustedIngredients,
-              steps: adjustedSteps,
-              serving: adjustedServing,
-            }
-          : recipe,
-      },
-    })
-  }
-  className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
->
-  💬 Chat
-</button>
-
+              onClick={() =>
+                navigate("/chat", {
+                  state: {
+                    recipe: adjusted
+                      ? {
+                        ...recipe,
+                        ingredients: adjustedIngredients,
+                        steps: adjustedSteps,
+                        serving: adjustedServing,
+                      }
+                      : recipe,
+                  },
+                })
+              }
+              className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
+            >
+              💬 Chat
+            </button>
           </div>
+
 
           <div className="flex justify-center text-center text-gray-500 text-sm px-4">
             <div className="flex gap-12">
@@ -138,16 +149,18 @@ export default function RecipePage() {
           </div>
         </div>
 
+
         <div className="p-4 bg-white mt-2 border-b border-gray-200">
           <h3 className="text-lg font-bold mb-4">재료</h3>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
             {(adjusted ? adjustedIngredients : recipe.ingredients).map((item, idx) => {
               const [name, amount] = item.split(":");
+              const altText = selectedAlternative[name.trim()] || amount;
               return (
                 <li key={idx} className="flex justify-between text-sm">
                   <span className="text-gray-800">{name.trim()}</span>
                   <span className="text-[#18881C] font-medium">
-                    {amount?.trim()}
+                    {altText?.trim()}
                   </span>
                 </li>
               );
@@ -155,22 +168,26 @@ export default function RecipePage() {
           </ul>
         </div>
 
+
         <div className="p-4 bg-white mt-2">
           <h3 className="text-lg font-bold mb-4">조리순서</h3>
-          {(adjusted ? adjustedSteps : recipe.steps).map((step, idx) => (
-            <div key={idx} className="mb-6">
-              <div className="flex items-start mb-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#2DB431] text-white text-sm font-bold mr-3">
-                  {idx + 1}
+          {(adjusted ? adjustedSteps : recipe.steps).map((step, idx) => {
+            return (
+              <div key={idx} className="mb-6">
+                <div className="flex items-start mb-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#2DB431] text-white text-sm font-bold mr-3">
+                    {idx + 1}
+                  </div>
+                  <p className="text-gray-800 text-sm leading-relaxed flex-1">
+                    {step}
+                  </p>
                 </div>
-                <p className="text-gray-800 text-sm leading-relaxed flex-1">
-                  {step}
-                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
+
