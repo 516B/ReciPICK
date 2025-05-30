@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Heart } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Header from "../components/Header";
@@ -11,10 +11,12 @@ export default function CategoryPage() {
   const [recipes, setRecipes] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [bookmarkedIds, setBookmarkedIds] = useState([]);
 
   const params = new URLSearchParams(location.search);
   const nameFromQuery = params.get("name");
   const decodedName = nameFromQuery ? decodeURIComponent(nameFromQuery) : "";
+  const userId = localStorage.getItem("userId");
 
   const categoryIconMap = {
     "밥/죽/떡": "🍚",
@@ -55,12 +57,54 @@ export default function CategoryPage() {
     }
   };
 
+  const fetchBookmarks = async () => {
+    if (!userId) return;
+    try {
+      const res = await axios.get("http://localhost:8000/bookmark/", {
+        params: { user_id: userId },
+      });
+      setBookmarkedIds(res.data.recipe_ids.map(id => Number(id)));
+    } catch (err) {
+      console.error("찜 목록 불러오기 실패:", err);
+    }
+  };
+
+  const toggleBookmark = async (recipeId) => {
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      navigate("/login");
+      return;
+    }
+
+    const isBookmarked = bookmarkedIds.includes(Number(recipeId));
+
+    try {
+      if (isBookmarked) {
+        await axios.delete(`http://localhost:8000/bookmark/${recipeId}`, {
+          params: { user_id: userId },
+        });
+        setBookmarkedIds((prev) => prev.filter((id) => id !== Number(recipeId)));
+      } else {
+        await axios.post(`http://localhost:8000/bookmark/${recipeId}`, null, {
+          params: { user_id: userId },
+        });
+        setBookmarkedIds((prev) => [...prev, Number(recipeId)]);
+      }
+    } catch (err) {
+      console.warn("찜 처리 에러:", err.response?.data?.detail);
+    }
+  };
+
   useEffect(() => {
     setPage(1);
     setRecipes([]);
     setHasMore(true);
     fetchRecipes(1);
   }, [decodedName]);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [userId]);
 
   const observer = useRef();
   const lastItemRef = useCallback(
@@ -125,12 +169,27 @@ export default function CategoryPage() {
                     })
                   }
                 >
-                  <img
-                    src={item.image_url}
-                    alt={item.title}
-                    className="w-full h-36 object-cover"
-                  />
-                  <div className="text-center text-sm text-gray-700 py-2">
+                  <div className="relative">
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      className="w-full h-36 object-cover"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBookmark(item.id);
+                      }}
+                      className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md"
+                    >
+                      <Heart
+                        size={20}
+                        fill={bookmarkedIds.includes(Number(item.id)) ? "red" : "white"}
+                        className={bookmarkedIds.includes(Number(item.id)) ? "text-red-500" : "text-gray-300"}
+                      />
+                    </button>
+                  </div>
+                  <div className="text-center text-sm text-gray-700 py-2 px-2">
                     {item.title}
                   </div>
                 </div>

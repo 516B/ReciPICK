@@ -6,7 +6,7 @@ from app.models import Base, User
 from app.database import engine
 
 # 라우터 import
-from app.api import auth, chat, category, recipe, title, filter
+from app.api import auth, chat, category, recipe, title, filter, bookmark
 from app.api.gpt import recommend, servings, substitute
 
 # FastAPI 앱 생성
@@ -31,6 +31,7 @@ app.include_router(category.router,   prefix="/category")
 app.include_router(recipe.router,     prefix="/recipe")
 app.include_router(title.router,      prefix="/search")
 app.include_router(filter.router,     prefix="/filter")
+app.include_router(bookmark.router, prefix="/bookmark")
 
 # GPT 기반 기능들
 app.include_router(recommend.router,  prefix="/gpt")
