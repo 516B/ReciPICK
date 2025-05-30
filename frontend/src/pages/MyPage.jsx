@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer"; 
@@ -7,7 +7,18 @@ export default function MyPage() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  console.log("로그인 상태:", isLoggedIn);
+  // 페이지 들어오자마자 로그인 상태 확인
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    setIsLoggedIn(!!userId); // 문자열이 존재하면 true
+    console.log("로그인 상태:", !!userId);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    setIsLoggedIn(false);
+    alert("로그아웃 되었습니다.");
+  };
 
   return (
     <div className="flex flex-col min-h-screen items-center bg-[#f7f8fa]">
@@ -19,7 +30,7 @@ export default function MyPage() {
             <h2 className="text-lg font-semibold">안녕하세요!</h2>
             <p className="text-sm text-gray-600">마이페이지 입니다.</p>
             <button
-              onClick={() => setIsLoggedIn(false)}
+              onClick={handleLogout}
               className="text-xs text-red-400 underline"
             >
               로그아웃
@@ -42,7 +53,7 @@ export default function MyPage() {
           </div>
         )}
       </div>
-      <Footer /> {}
+      <Footer />
     </div>
   );
 }
