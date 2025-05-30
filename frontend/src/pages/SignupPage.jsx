@@ -9,9 +9,18 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignup = async () => {
     if (!email || !password || !confirm) {
       alert("모든 항목을 입력해주세요.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      alert("유효한 이메일 형식을 입력해주세요. 예: user@example.com");
       return;
     }
     if (password !== confirm) {
@@ -20,11 +29,9 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8000/auth/signup", null, {
-        params: {
-          email,
-          password,
-        },
+      const res = await axios.post("http://localhost:8000/auth/signup", {
+        email,
+        password,
       });
       alert("회원가입 성공! 로그인 페이지로 이동합니다.");
       navigate("/login");

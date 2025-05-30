@@ -2,7 +2,7 @@ from typesense import Client
 import json
 
 client = Client({
-    "nodes": [{"host": "localhost", "port": "8200", "protocol": "http"}],
+    "nodes": [{"host": "localhost", "port": "8108", "protocol": "http"}],
     "api_key": "xyz", 
     "connection_timeout_seconds": 10
 })

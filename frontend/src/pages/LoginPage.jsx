@@ -8,13 +8,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert("이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      alert("유효한 이메일 형식을 입력해주세요. 예: user@example.com");
+      return;
+    }
+
     try {
-      const res = await axios.post("http://localhost:8000/auth/login", null, {
-        params: {
-          email,
-          password,
-        },
+      const res = await axios.post("http://localhost:8000/auth/login", {
+        email,
+        password,
       });
 
       localStorage.setItem("userId", res.data.userId);
