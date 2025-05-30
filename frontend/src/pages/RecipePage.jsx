@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Clock, User, Star } from "lucide-react";
+import { Clock, User, Star, Heart } from "lucide-react";
 import Header from "../components/Header";
 import axios from "axios";
 
@@ -23,14 +23,16 @@ export default function RecipePage() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const userId = localStorage.getItem("userId");
+  const [recipe, setRecipe] = useState(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [error, setError] = useState("");
+
   const adjusted = location.state?.adjusted;
   const adjustedIngredients = location.state?.adjustedIngredients;
   const adjustedSteps = location.state?.adjustedSteps;
   const adjustedServing = location.state?.adjustedServing;
   const selectedAlternative = location.state?.selectedAlternative || {};
-
-  const [recipe, setRecipe] = useState(null);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -42,8 +44,47 @@ export default function RecipePage() {
         console.error(err);
       }
     };
+
+    const fetchBookmarkStatus = async () => {
+      if (!userId) return;
+      try {
+        const res = await axios.get("http://localhost:8000/bookmark/", {
+          params: { user_id: userId },
+        });
+        const ids = res.data.recipe_ids.map(Number);
+        setIsBookmarked(ids.includes(Number(id)));
+      } catch (err) {
+        console.error("찜 상태 확인 실패:", err);
+      }
+    };
+
     fetchRecipe();
-  }, [id]);
+    fetchBookmarkStatus();
+  }, [id, userId]);
+
+  const toggleBookmark = async () => {
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      navigate("/mypage");
+      return;
+    }
+
+    try {
+      if (isBookmarked) {
+        await axios.delete(`http://localhost:8000/bookmark/${id}`, {
+          params: { user_id: userId },
+        });
+        setIsBookmarked(false);
+      } else {
+        await axios.post(`http://localhost:8000/bookmark/${id}`, null, {
+          params: { user_id: userId },
+        });
+        setIsBookmarked(true);
+      }
+    } catch (err) {
+      console.error("찜 처리 실패:", err);
+    }
+  };
 
   if (error) return <div className="p-4">{error}</div>;
   if (!recipe) return <div className="p-4">로딩 중...</div>;
@@ -81,8 +122,22 @@ export default function RecipePage() {
         </div>
 
         <div className="p-4 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">{recipe.title}</h2>
+          <div className="flex justify-between items-start mb-6 gap-2">
+            {/* 제목 + 하트 */}
+            <div className="flex flex-col flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-xl font-bold break-words flex-1">{recipe.title}</h2>
+                <button onClick={toggleBookmark} className="shrink-0">
+                  <Heart
+                    size={22}
+                    fill={isBookmarked ? "red" : "white"}
+                    className={isBookmarked ? "text-red-500" : "text-gray-300"}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Chat 버튼 */}
             <button
               onClick={() =>
                 navigate("/chat", {
@@ -98,7 +153,7 @@ export default function RecipePage() {
                   },
                 })
               }
-              className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition"
+              className="text-xs bg-[#2DB431] text-white font-semibold px-3 py-1 rounded-full shadow hover:bg-[#1e7f22] transition whitespace-nowrap"
             >
               💬 Chat
             </button>
