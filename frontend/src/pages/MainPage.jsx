@@ -145,8 +145,8 @@ export default function MainPage() {
                     }
                     className="w-full max-w-[100px] h-[100px] bg-[#ffe2d9] hover:bg-[#FFCBB3] transition-all rounded-2xl shadow-sm flex flex-col items-center justify-center"
                   >
-                    <span className="text-xl">{category.icon}</span>
-                    <span className="text-xs mt-1 font-medium text-black">
+                    <span className="text-[27px]">{category.icon}</span>
+                    <span className="text-[13px] font-medium text-black mt-3">
                       {category.name}
                     </span>
                   </button>

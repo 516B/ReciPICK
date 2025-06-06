@@ -3,7 +3,7 @@ import json
 import os
 
 client = Client({
-    "nodes": [{"host": "localhost", "port": "8108", "protocol": "http"}],
+    "nodes": [{"host": "localhost", "port": "8200", "protocol": "http"}],
     "api_key": "xyz",
     "connection_timeout_seconds": 10
 })
@@ -21,4 +21,4 @@ res = client.collections["recipes_gpt"].documents.import_(
     docs, {"action": "upsert"}
 )
 
-print("✅ 데이터 업로드 완료")
+print("데이터 업로드 완료")
