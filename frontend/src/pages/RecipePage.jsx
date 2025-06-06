@@ -34,7 +34,6 @@ export default function RecipePage() {
   const adjustedServing = location.state?.adjustedServing;
   const selectedAlternative = location.state?.selectedAlternative || {};
 
-  // 🟡 TTS & 타이머 관련 추가
   const [showTimer, setShowTimer] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState("");
   const [timerSeconds, setTimerSeconds] = useState("");
@@ -89,20 +88,28 @@ export default function RecipePage() {
     fetchBookmarkStatus();
   }, [id, userId]);
 
-  useEffect(() => {
-    if (recipe && userId) {
-      const key = `recentViews_${userId}`;
-      const viewed = JSON.parse(localStorage.getItem(key) || "[]");
-      const newItem = {
-        id: recipe.id,
-        title: recipe.title,
-        image_url: recipe.image_url,
-        ingredients: recipe.ingredients,
-      };
-      const updated = [newItem, ...viewed.filter((item) => item.id !== recipe.id)].slice(0, 8);
-      localStorage.setItem(key, JSON.stringify(updated));
-    }
-  }, [recipe, userId]);
+ useEffect(() => {
+  if (recipe && userId) {
+    const newItem = {
+      id: recipe.id,
+      title: recipe.title,
+      image_url: recipe.image_url,
+      ingredients: recipe.ingredients,
+    };
+
+    // recentViews: 최신 8개만
+    const key = `recentViews_${userId}`;
+    const viewed = JSON.parse(localStorage.getItem(key) || "[]");
+    const updatedRecent = [newItem, ...viewed.filter((item) => item.id !== recipe.id)].slice(0, 8);
+    localStorage.setItem(key, JSON.stringify(updatedRecent));
+
+    // longTermViews: 제한 없이 누적 저장
+    const longKey = `longTermViews_${userId}`;
+    const longList = JSON.parse(localStorage.getItem(longKey) || "[]");
+    const updatedLong = [newItem, ...longList.filter((item) => item.id !== recipe.id)];
+    localStorage.setItem(longKey, JSON.stringify(updatedLong));
+  }
+}, [recipe, userId]);
 
   useEffect(() => {
     let timer;

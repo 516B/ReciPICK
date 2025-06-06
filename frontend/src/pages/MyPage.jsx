@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SEASONINGS = [
   "소금", "설탕", "간장", "식초", "후추", "고춧가루", "고추장", "된장", "참기름", "들기름",
-  "물엿", "맛술", "청주", "케첩", "마요네즈", "쌈장", "양조간장", "진간장", "미림"
+  "물엿", "맛술", "청주", "케첩", "마요네즈", "쌈장", "양조간장", "진간장", "미림", "물"
 ];
 
 export default function MyPage() {
@@ -34,14 +34,21 @@ export default function MyPage() {
       return;
     }
 
-    const storedRecipes = localStorage.getItem(`recentViews_${id}`);
-    let parsed = [];
-    if (storedRecipes) {
-      parsed = JSON.parse(storedRecipes);
-      setRecentRecipes(parsed);
+    const storedRecent = localStorage.getItem(`recentViews_${id}`);
+    const storedLong = localStorage.getItem(`longTermViews_${id}`);
+    let parsedRecent = [];
+    let parsedLong = [];
+
+    if (storedRecent) {
+      parsedRecent = JSON.parse(storedRecent);
+      setRecentRecipes(parsedRecent); // 최근 본 레시피는 recent 기준
+    }
+    if (storedLong) {
+      parsedLong = JSON.parse(storedLong);
     }
 
-    const ingredients = parsed.flatMap(r => r.ingredients || []);
+    // 자주 쓴 재료: longTerm 기준
+    const ingredients = parsedLong.flatMap(r => r.ingredients || []);
     const nameCounts = {};
     ingredients.forEach((item) => {
       const name = item.split(":")[0].trim();
@@ -55,7 +62,7 @@ export default function MyPage() {
       .map(([name]) => name);
     setTopIngredients(sorted);
 
-    const recentForPrompt = parsed.map(r => ({
+    const recentForPrompt = parsedLong.map(r => ({
       id: r.id,
       title: r.title,
       ingredients: (r.ingredients || [])
@@ -103,7 +110,9 @@ export default function MyPage() {
     }
 
     setIsLoading(true);
-    const recentForPrompt = recentRecipes.map(r => ({
+    const storedLong = localStorage.getItem(`longTermViews_${userId}`);
+    const parsedLong = storedLong ? JSON.parse(storedLong) : [];
+    const recentForPrompt = parsedLong.map(r => ({
       id: r.id,
       title: r.title,
       ingredients: (r.ingredients || [])
@@ -169,8 +178,8 @@ export default function MyPage() {
                           className="w-full h-32 object-cover rounded-md"
                         />
                         <div className="text-sm text-gray-800 text-center font-semibold h-[36px] leading-tight px-2 overflow-hidden text-ellipsis line-clamp-2">
-  {item.title}
-</div>
+                          {item.title}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -193,20 +202,19 @@ export default function MyPage() {
                   <div className="col-span-2 text-sm text-gray-400">클릭을 통해 AI 추천을 확인해보세요.</div>
                 ) : (
                   gptRecommendations.slice(0, 6).map((rec) => (
-                   <div
-  key={rec.id}
-  className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow hover:shadow-md transition cursor-pointer flex flex-col"
-  onClick={() => navigate(`/recipe/${rec.id}`)}
->
-  <img src={rec.image_url} alt={rec.title} className="w-full h-24 object-cover" />
-  
-  <div className="text-xs text-gray-700 font-bold px-2 pt-2 text-left leading-snug line-clamp-2 min-h-[2.75rem]">
-  {rec.title}
-</div>
-  <div className="text-[11px] text-gray-700 px-2 py-2 text-left leading-relaxed bg-[#ffe2d9] flex-grow">
-    {rec.reason}
-  </div>
-</div>
+                    <div
+                      key={rec.id}
+                      className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow hover:shadow-md transition cursor-pointer flex flex-col"
+                      onClick={() => navigate(`/recipe/${rec.id}`)}
+                    >
+                      <img src={rec.image_url} alt={rec.title} className="w-full h-24 object-cover" />
+                      <div className="text-xs text-gray-700 font-bold px-2 pt-2 text-left leading-snug line-clamp-2 min-h-[2.75rem]">
+                        {rec.title}
+                      </div>
+                      <div className="text-[11px] text-gray-700 px-2 py-2 text-left leading-relaxed bg-[#ffe2d9] flex-grow">
+                        {rec.reason}
+                      </div>
+                    </div>
                   ))
                 )}
               </div>
