@@ -7,7 +7,7 @@ from app.database import engine
 
 # 라우터 import
 from app.api import auth, chat, category, recipe, title, filter, bookmark
-from app.api.gpt import recommend, servings, substitute
+from app.api.gpt import recommend, servings, substitute, custom
 
 # FastAPI 앱 생성
 app = FastAPI()
@@ -37,3 +37,4 @@ app.include_router(bookmark.router, prefix="/bookmark")
 app.include_router(recommend.router,  prefix="/gpt")
 app.include_router(servings.router,   prefix="/gpt")
 app.include_router(substitute.router, prefix="/gpt")
+app.include_router(custom.router, prefix="/gpt")

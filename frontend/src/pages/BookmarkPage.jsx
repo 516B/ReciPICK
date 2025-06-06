@@ -14,7 +14,6 @@ export default function BookmarkPage() {
       navigate("/login", { replace: true });
       return;
     }
-
     const fetchBookmarkedRecipes = async () => {
       try {
         const res = await axios.get("http://localhost:8000/bookmark/", {
@@ -30,7 +29,6 @@ export default function BookmarkPage() {
         console.error("찜한 레시피 불러오기 실패:", err);
       }
     };
-
     fetchBookmarkedRecipes();
   }, [userId, navigate]);
 
@@ -39,20 +37,20 @@ export default function BookmarkPage() {
       <main className="flex-grow bg-[#F7F8FA]">
         <div className="w-full max-w-md mx-auto text-sm">
           <Header title="찜한 레시피" />
-          <div className="p-4 grid grid-cols-2 gap-4">
+          <div className="p-4 flex flex-col gap-3">
             {recipes.map((recipe) => (
               <div
                 key={recipe.id}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex items-center"
                 onClick={() => navigate(`/recipe/${recipe.id}`)}
               >
                 <img
                   src={recipe.image_url}
                   alt={recipe.title}
-                  className="w-full h-36 object-cover"
+                  className="w-20 h-20 object-cover flex-shrink-0 ml-2"
                 />
-                <div className="text-center text-sm text-gray-700 py-2 px-2">
-                  {recipe.title}
+                <div className="flex flex-col justify-center flex-1 px-3 py-2">
+                  <div className="text-sm font-normal text-gray-800">{recipe.title}</div>
                 </div>
               </div>
             ))}

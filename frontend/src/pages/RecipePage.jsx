@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Clock, User, Star, Heart, Timer } from "lucide-react";
+import { Clock, User, Star, Heart, Timer, Volume2, Square, ArrowRight } from "lucide-react";
 import Header from "../components/Header";
 import axios from "axios";
 
@@ -34,11 +34,32 @@ export default function RecipePage() {
   const adjustedServing = location.state?.adjustedServing;
   const selectedAlternative = location.state?.selectedAlternative || {};
 
+  // 🟡 TTS & 타이머 관련 추가
   const [showTimer, setShowTimer] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState("");
   const [timerSeconds, setTimerSeconds] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [isTimerSet, setIsTimerSet] = useState(false);
+  const [showTimeUpModal, setShowTimeUpModal] = useState(false);
+  const alarmSound = useRef(new Audio('/sounds/ring.mp3')).current;
+  alarmSound.volume = 0.5;
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  const speakSteps = (step) => {
+    const utterance = new SpeechSynthesisUtterance(step);
+    utterance.lang = "ko-KR";
+    speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    speechSynthesis.cancel();
+  };
+
+  const handleNextStep = () => {
+    setCurrentStepIndex((prev) => Math.min(prev + 1, (adjusted ? adjustedSteps.length : recipe.steps.length) - 1));
+    speakSteps(adjusted ? adjustedSteps[currentStepIndex + 1] : recipe.steps[currentStepIndex + 1]);
+  };
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -76,9 +97,9 @@ export default function RecipePage() {
         id: recipe.id,
         title: recipe.title,
         image_url: recipe.image_url,
-        ingredients: recipe.ingredients, 
+        ingredients: recipe.ingredients,
       };
-      const updated = [newItem, ...viewed.filter(item => item.id !== recipe.id)].slice(0, 4);
+      const updated = [newItem, ...viewed.filter((item) => item.id !== recipe.id)].slice(0, 8);
       localStorage.setItem(key, JSON.stringify(updated));
     }
   }, [recipe, userId]);
@@ -91,7 +112,9 @@ export default function RecipePage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      alert("⏰ 시간이 끝났습니다!");
+      setIsTimerSet(false);
+      setShowTimeUpModal(true);
+      alarmSound.play();
     }
     return () => clearInterval(timer);
   }, [isRunning, timeLeft]);
@@ -103,24 +126,27 @@ export default function RecipePage() {
   };
 
   const handleStart = () => {
-    const totalSeconds =
-      (parseInt(timerMinutes, 10) || 0) * 60 +
-      (parseInt(timerSeconds, 10) || 0);
-    if (totalSeconds > 0) {
-      setTimeLeft(totalSeconds);
+    if (timeLeft > 0) {
       setIsRunning(true);
+    } else {
+      const totalSeconds =
+        (parseInt(timerMinutes, 10) || 0) * 60 +
+        (parseInt(timerSeconds, 10) || 0);
+      if (totalSeconds > 0) {
+        setTimeLeft(totalSeconds);
+        setIsRunning(true);
+        setIsTimerSet(true);
+      }
     }
   };
 
-  const handlePause = () => {
-    setIsRunning(false);
-  };
-
+  const handlePause = () => setIsRunning(false);
   const handleReset = () => {
     setIsRunning(false);
     setTimeLeft(0);
     setTimerMinutes("");
     setTimerSeconds("");
+    setIsTimerSet(false);
   };
 
   const toggleBookmark = async () => {
@@ -222,9 +248,7 @@ export default function RecipePage() {
             <div className="flex gap-12">
               <div className="flex flex-col items-center">
                 <User size={18} />
-                <span className="mt-1">
-                  {adjusted ? adjustedServing : recipe.serving}
-                </span>
+                <span className="mt-1">{adjusted ? adjustedServing : recipe.serving}</span>
               </div>
               <div className="flex flex-col items-center">
                 <Clock size={18} />
@@ -244,9 +268,7 @@ export default function RecipePage() {
                     )
                   )}
                 </div>
-                <span className="mt-1 text-sm text-gray-500">
-                  난이도 {recipe.difficulty}
-                </span>
+                <span className="mt-1 text-sm text-gray-500">난이도 {recipe.difficulty}</span>
               </div>
             </div>
           </div>
@@ -261,9 +283,7 @@ export default function RecipePage() {
               return (
                 <li key={idx} className="flex justify-between text-sm">
                   <span className="text-gray-800">{name.trim()}</span>
-                  <span className="text-[#18881C] font-medium">
-                    {altText?.trim()}
-                  </span>
+                  <span className="text-[#18881C] font-medium">{altText?.trim()}</span>
                 </li>
               );
             })}
@@ -272,68 +292,102 @@ export default function RecipePage() {
 
         <div className="p-4 bg-white mt-2">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">조리순서</h3>
-         
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-bold">조리순서</h3>
+              <button onClick={() => speakSteps(adjusted ? adjustedSteps[currentStepIndex] : recipe.steps[currentStepIndex])}
+                className="p-1 rounded-full hover:bg-blue-100 transition"
+              >
+                <Volume2 size={20} className="text-blue-500" />
+              </button>
+              <button onClick={stopSpeaking}
+                className="p-1 rounded-full hover:bg-red-100 transition"
+              >
+                <Square size={20} className="text-red-400" />
+              </button>
+              <button onClick={handleNextStep}
+                className="p-1 rounded-full hover:bg-yellow-100 transition"
+              >
+                <ArrowRight size={20} className="text-yellow-500" />
+              </button>
+            </div>
+
             <button
               onClick={() => setShowTimer((prev) => !prev)}
-              className="flex items-center space-x-1 text-green-700 text-sm font-medium"
+              className="flex items-center space-x-1 text-green-700 text-base font-bold px-3 py-2"
             >
               <span>타이머</span>
-              <Timer size={20} />
+              <Timer size={24} />
             </button>
           </div>
 
+          {/* 타이머 UI */}
           {showTimer && (
             <div className="mb-4 p-3 border rounded-md bg-gray-50">
-              <div className="flex items-center space-x-2 mb-2">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="분"
-                  value={timerMinutes}
-                  onChange={(e) =>
-                    setTimerMinutes(e.target.value.replace(/\D/g, ""))
-                  }
-                  className="w-16 p-1 border rounded text-center"
-                  disabled={isRunning}
-                />
-                <span className="text-xl font-bold">:</span>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="초"
-                  value={timerSeconds}
-                  onChange={(e) =>
-                    setTimerSeconds(e.target.value.replace(/\D/g, ""))
-                  }
-                  className="w-16 p-1 border rounded text-center"
-                  disabled={isRunning}
-                />
-                <span className="text-gray-700 text-lg font-semibold">
-                  {formatTime(timeLeft)}
-                </span>
+              <div className="relative min-h-[35px]">
+                {!isTimerSet ? (
+                  <div className="absolute inset-0 flex justify-center items-center space-x-2">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="분"
+                      value={timerMinutes}
+                      onChange={(e) => setTimerMinutes(e.target.value.replace(/\D/g, ""))}
+                      className="w-16 p-1 border rounded text-center"
+                      disabled={isRunning}
+                    />
+                    <span className="text-xl font-bold">:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="초"
+                      value={timerSeconds}
+                      onChange={(e) => setTimerSeconds(e.target.value.replace(/\D/g, ""))}
+                      className="w-16 p-1 border rounded text-center"
+                      disabled={isRunning}
+                    />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex justify-center items-center text-2xl font-bold text-gray-800">
+                    {formatTime(timeLeft)}
+                  </div>
+                )}
               </div>
-              <div className="flex space-x-2">
+
+              <div className="flex justify-center space-x-2 mt-2">
+                <button
+                  onClick={handleReset}
+                  className="bg-red-400 text-white px-2 py-1 text-[13px] rounded-full hover:bg-red-500"
+                >
+                  초기화
+                </button>
                 {!isRunning ? (
                   <button
                     onClick={handleStart}
-                    className="bg-[#2DB431] text-white px-4 py-1 rounded-full hover:bg-green-600"
+                    className="bg-[#2DB431] text-white px-2 py-1 text-[13px] rounded-full hover:bg-green-600"
                   >
                     시작
                   </button>
                 ) : (
                   <button
                     onClick={handlePause}
-                    className="bg-yellow-500 text-white px-4 py-1 rounded-full hover:bg-yellow-600"
+                    className="bg-yellow-500 text-white px-2 py-1 text-[13px] rounded-full hover:bg-yellow-600"
                   >
                     멈춤
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {showTimeUpModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
+                <div className="text-2xl font-bold text-red-600 mb-2">⏰ 시간이 끝났습니다!</div>
                 <button
-                  onClick={handleReset}
-                  className="bg-red-400 text-white px-4 py-1 rounded-full hover:bg-red-500"
+                  onClick={() => setShowTimeUpModal(false)}
+                  className="mt-4 px-4 py-2 bg-[#FDA177] text-white rounded-full font-semibold hover:bg-[#fc5305] transition"
                 >
-                  초기화
+                  확인
                 </button>
               </div>
             </div>

@@ -42,3 +42,8 @@ def get_user_bookmarks(user_id: int, db: Session = Depends(get_db)):
     bookmarks = db.query(Bookmark).filter_by(user_id=user_id).all()
     recipe_ids = [b.recipe_id for b in bookmarks]
     return {"recipe_ids": recipe_ids}
+
+@router.get("/check/{recipe_id}")
+def check_bookmarked(recipe_id: int, user_id: int, db: Session = Depends(get_db)):
+    exists = db.query(Bookmark).filter_by(user_id=user_id, recipe_id=recipe_id).first()
+    return {"bookmarked": bool(exists)}

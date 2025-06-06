@@ -19,7 +19,7 @@ class Bookmark(Base):
     __tablename__ = "bookmarks"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     recipe_id = Column(Integer)
 
     # 중복 레시피 찜 방지
