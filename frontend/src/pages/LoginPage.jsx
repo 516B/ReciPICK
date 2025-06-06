@@ -28,10 +28,9 @@ export default function LoginPage() {
         email,
         password,
       });
-
       localStorage.setItem("userId", res.data.userId);
-      alert("로그인 성공!");
-      navigate("/mypage");
+      alert("로그인에 성공하였습니다!");
+      navigate("/");
     } catch (err) {
       alert("로그인 실패: " + err.response?.data?.detail);
     }
@@ -62,6 +61,15 @@ export default function LoginPage() {
           >
             로그인
           </button>
+          <div className="mt-2 text-xs text-gray-500">
+            계정이 없으신가요?{" "}
+            <span
+              className="text-[#FDA177] underline cursor-pointer"
+              onClick={() => navigate("/signup")}
+            >
+              회원가입
+            </span>
+          </div>
         </div>
       </div>
     </div>

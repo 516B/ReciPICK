@@ -12,6 +12,7 @@ export default function CategoryPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [bookmarkedIds, setBookmarkedIds] = useState([]);
+  const [showTopBtn, setShowTopBtn] = useState(false);
 
   const params = new URLSearchParams(location.search);
   const nameFromQuery = params.get("name");
@@ -42,13 +43,11 @@ export default function CategoryPage() {
         `http://localhost:8000/category/search?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
       );
       const newRecipes = res.data.recipes || [];
-
       setRecipes((prev) => {
         const seen = new Set(prev.map((r) => r.id));
         const filtered = newRecipes.filter((r) => !seen.has(r.id));
         return [...prev, ...filtered];
       });
-
       if (newRecipes.length === 0 || newRecipes.every(r => recipes.some(e => e.id === r.id))) {
         setHasMore(false);
       }
@@ -75,9 +74,7 @@ export default function CategoryPage() {
       navigate("/login");
       return;
     }
-
     const isBookmarked = bookmarkedIds.includes(Number(recipeId));
-
     try {
       if (isBookmarked) {
         await axios.delete(`http://localhost:8000/bookmark/${recipeId}`, {
@@ -110,7 +107,6 @@ export default function CategoryPage() {
   const lastItemRef = useCallback(
     (node) => {
       if (observer.current) observer.current.disconnect();
-
       observer.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMore) {
           setPage((prev) => {
@@ -120,11 +116,22 @@ export default function CategoryPage() {
           });
         }
       });
-
       if (node) observer.current.observe(node);
     },
     [hasMore]
   );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTopBtn(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const filteredItems = recipes
     .filter(item =>
@@ -140,7 +147,6 @@ export default function CategoryPage() {
     <div className="min-h-screen bg-[#f7f8fa] flex justify-center">
       <div className="w-full max-w-md flex flex-col">
         <Header title={categoryTitle} showBack onBack={() => navigate("/")} />
-
         <div className="bg-white p-4">
           <div className="relative flex items-center border border-[#fc5305] rounded-full bg-[#ffffff] px-4 py-2">
             <Search className="text-[#fc5305] mr-2" size={20} />
@@ -153,7 +159,6 @@ export default function CategoryPage() {
             />
           </div>
         </div>
-
         <div className="p-4 grid grid-cols-2 gap-4">
           {filteredItems.length > 0 ? (
             filteredItems.map((item, index) => {
@@ -201,6 +206,18 @@ export default function CategoryPage() {
             </p>
           )}
         </div>
+        {showTopBtn && (
+  <button
+    onClick={scrollToTop}
+    className="fixed bottom-20 right-1/2 translate-x-1/2 md:right-0 md:translate-x-0 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
+    style={{
+      right: 'calc(50% - 215px)', // (430px/2) = 215, 앱 기준 오른쪽에 맞추기
+    }}
+    aria-label="맨 위로"
+  >
+    <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+  </button>
+)}
       </div>
     </div>
   );

@@ -11,8 +11,7 @@ export default function BookmarkPage() {
 
   useEffect(() => {
     if (!userId) {
-      alert("로그인이 필요합니다.");
-      navigate("/mypage");
+      navigate("/login", { replace: true });
       return;
     }
 
@@ -22,7 +21,6 @@ export default function BookmarkPage() {
           params: { user_id: userId },
         });
         const ids = res.data.recipe_ids;
-
         const recipePromises = ids.map((id) =>
           axios.get(`http://localhost:8000/recipe/${id}`).then((r) => r.data)
         );
@@ -34,7 +32,7 @@ export default function BookmarkPage() {
     };
 
     fetchBookmarkedRecipes();
-  }, [userId]);
+  }, [userId, navigate]);
 
   return (
     <div className="flex flex-col min-h-screen">

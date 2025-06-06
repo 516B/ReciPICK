@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Clock, User, Star, Heart } from "lucide-react";
+import { Clock, User, Star, Heart, Timer } from "lucide-react";
 import Header from "../components/Header";
 import axios from "axios";
 
@@ -34,6 +34,12 @@ export default function RecipePage() {
   const adjustedServing = location.state?.adjustedServing;
   const selectedAlternative = location.state?.selectedAlternative || {};
 
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState("");
+  const [timerSeconds, setTimerSeconds] = useState("");
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
@@ -61,6 +67,61 @@ export default function RecipePage() {
     fetchRecipe();
     fetchBookmarkStatus();
   }, [id, userId]);
+
+  useEffect(() => {
+    if (recipe && userId) {
+      const key = `recentViews_${userId}`;
+      const viewed = JSON.parse(localStorage.getItem(key) || "[]");
+      const newItem = {
+        id: recipe.id,
+        title: recipe.title,
+        image_url: recipe.image_url,
+        ingredients: recipe.ingredients, 
+      };
+      const updated = [newItem, ...viewed.filter(item => item.id !== recipe.id)].slice(0, 4);
+      localStorage.setItem(key, JSON.stringify(updated));
+    }
+  }, [recipe, userId]);
+
+  useEffect(() => {
+    let timer;
+    if (isRunning && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
+      alert("⏰ 시간이 끝났습니다!");
+    }
+    return () => clearInterval(timer);
+  }, [isRunning, timeLeft]);
+
+  const formatTime = (seconds) => {
+    const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const sec = String(seconds % 60).padStart(2, "0");
+    return `${min}:${sec}`;
+  };
+
+  const handleStart = () => {
+    const totalSeconds =
+      (parseInt(timerMinutes, 10) || 0) * 60 +
+      (parseInt(timerSeconds, 10) || 0);
+    if (totalSeconds > 0) {
+      setTimeLeft(totalSeconds);
+      setIsRunning(true);
+    }
+  };
+
+  const handlePause = () => {
+    setIsRunning(false);
+  };
+
+  const handleReset = () => {
+    setIsRunning(false);
+    setTimeLeft(0);
+    setTimerMinutes("");
+    setTimerSeconds("");
+  };
 
   const toggleBookmark = async () => {
     if (!userId) {
@@ -123,7 +184,6 @@ export default function RecipePage() {
 
         <div className="p-4 bg-white border-b border-gray-200">
           <div className="flex justify-between items-start mb-6 gap-2">
-            {/* 제목 + 하트 */}
             <div className="flex flex-col flex-1">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="text-xl font-bold break-words flex-1">{recipe.title}</h2>
@@ -137,7 +197,6 @@ export default function RecipePage() {
               </div>
             </div>
 
-            {/* Chat 버튼 */}
             <button
               onClick={() =>
                 navigate("/chat", {
@@ -212,7 +271,74 @@ export default function RecipePage() {
         </div>
 
         <div className="p-4 bg-white mt-2">
-          <h3 className="text-lg font-bold mb-4">조리순서</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold">조리순서</h3>
+         
+            <button
+              onClick={() => setShowTimer((prev) => !prev)}
+              className="flex items-center space-x-1 text-green-700 text-sm font-medium"
+            >
+              <span>타이머</span>
+              <Timer size={20} />
+            </button>
+          </div>
+
+          {showTimer && (
+            <div className="mb-4 p-3 border rounded-md bg-gray-50">
+              <div className="flex items-center space-x-2 mb-2">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="분"
+                  value={timerMinutes}
+                  onChange={(e) =>
+                    setTimerMinutes(e.target.value.replace(/\D/g, ""))
+                  }
+                  className="w-16 p-1 border rounded text-center"
+                  disabled={isRunning}
+                />
+                <span className="text-xl font-bold">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="초"
+                  value={timerSeconds}
+                  onChange={(e) =>
+                    setTimerSeconds(e.target.value.replace(/\D/g, ""))
+                  }
+                  className="w-16 p-1 border rounded text-center"
+                  disabled={isRunning}
+                />
+                <span className="text-gray-700 text-lg font-semibold">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+              <div className="flex space-x-2">
+                {!isRunning ? (
+                  <button
+                    onClick={handleStart}
+                    className="bg-[#2DB431] text-white px-4 py-1 rounded-full hover:bg-green-600"
+                  >
+                    시작
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePause}
+                    className="bg-yellow-500 text-white px-4 py-1 rounded-full hover:bg-yellow-600"
+                  >
+                    멈춤
+                  </button>
+                )}
+                <button
+                  onClick={handleReset}
+                  className="bg-red-400 text-white px-4 py-1 rounded-full hover:bg-red-500"
+                >
+                  초기화
+                </button>
+              </div>
+            </div>
+          )}
+
           {(adjusted ? adjustedSteps : recipe.steps).map((step, idx) => {
             const cleanStep = step.replace(/^\d+[\.\)]?\s*/, "");
             return (

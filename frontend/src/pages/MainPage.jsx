@@ -12,6 +12,8 @@ export default function MainPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const observer = useRef();
+  const [showTopBtn, setShowTopBtn] = useState(false);
+  const containerRef = useRef();
 
   const foodCategories = [
     { name: "밥/죽/떡", icon: "🍚" },
@@ -34,20 +36,16 @@ export default function MainPage() {
   useEffect(() => {
     const fetchResults = async () => {
       if (!searchText.trim()) return;
-
       try {
         const res = await axios.get(
           `http://localhost:8000/search/title?q=${encodeURIComponent(searchText)}&page=${page}&per_page=8`
         );
-
         const newResults = res.data.recipes || [];
-
         setSearchResults((prev) => {
           if (page === 1) {
             setHasMore(newResults.length > 0);
             return newResults;
           }
-
           const seen = new Set(prev.map((r) => r.id));
           const filtered = newResults.filter((r) => !seen.has(r.id));
           setHasMore(filtered.length > 0);
@@ -58,27 +56,39 @@ export default function MainPage() {
         setHasMore(false);
       }
     };
-
     fetchResults();
   }, [searchText, page]);
 
   const lastResultRef = useCallback(
     (node) => {
       if (observer.current) observer.current.disconnect();
-
       observer.current = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && hasMore) {
           setPage((prev) => prev + 1);
         }
       });
-
       if (node) observer.current.observe(node);
     },
     [hasMore]
   );
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowTopBtn(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div ref={containerRef} className="flex flex-col min-h-screen">
       <main className="flex-grow bg-[#F7F8FA]">
         <div className="relative w-full max-w-md mx-auto bg-[#F7F8FA] text-sm">
           <Header
@@ -154,19 +164,31 @@ export default function MainPage() {
               </div>
             </div>
           )}
-        {searchText.trim() === "" && (
-          <div
-            onClick={() => navigate("/chat")}
-             className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform z-50"
-          >
-            <img
-              src="/images/chat.png"
-              alt="챗봇"
-              className="w-24 h-24 object-contain"
-            />
-          </div>
-        )}
-          </div> 
+          {searchText.trim() === "" && (
+            <div
+              onClick={() => navigate("/chat")}
+              className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform z-50"
+            >
+              <img
+                src="/images/chat.png"
+                alt="챗봇"
+                className="w-24 h-24 object-contain"
+              />
+            </div>
+          )}
+          {showTopBtn && (
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
+              style={{
+                right: 'calc(50% - 215px)',
+              }}
+              aria-label="맨 위로"
+            >
+              <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+            </button>
+          )}
+        </div>
       </main>
       <Footer />
     </div>

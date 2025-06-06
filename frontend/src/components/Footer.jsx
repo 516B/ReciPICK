@@ -7,10 +7,20 @@ export default function Footer() {
 
   const isActive = (path) => location.pathname === path;
 
+  const goToBookmarks = () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      navigate("/login");
+    } else {
+      navigate("/bookmarks");
+    }
+  };
+
   return (
     <footer className="w-full bg-[#FDA177] text-white flex justify-around items-center py-3">
       <button
-        onClick={() => navigate("/bookmarks")}
+        onClick={goToBookmarks}
         className={`flex flex-col items-center text-xs ${isActive("/bookmarks") ? "opacity-100" : "opacity-80"}`}
       >
         <Heart size={20} />
