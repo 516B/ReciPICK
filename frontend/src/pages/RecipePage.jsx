@@ -47,6 +47,7 @@ export default function RecipePage() {
 
   const [showMemo, setShowMemo] = useState(false);
   const [memoText, setMemoText] = useState("");
+  const [showMemoSaved, setShowMemoSaved] = useState(false);
 
 
   const speakSteps = (step) => {
@@ -196,10 +197,11 @@ export default function RecipePage() {
 
 const handleSaveMemo = () => {
   const key = `memo_${userId}_${recipe.id}`;
-  const memo = { text: memoText, time: getCurrentDateTime() };
+  const memo = { title: recipe.title, text: memoText, time: getCurrentDateTime() };
   localStorage.setItem(key, JSON.stringify(memo));
   setShowMemo(false);
-  alert("메모가 저장되었습니다!");
+  setMemoText(""); 
+  setShowMemoSaved(true); 
 };
 
   if (error) return <div className="p-4">{error}</div>;
@@ -422,6 +424,22 @@ const handleSaveMemo = () => {
             </div>
           )}
 
+          
+{showMemoSaved && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
+      <div className="text-2xl font-bold text-green-600 mb-2">📌 저장 완료!</div>
+      <div className="text-sm text-gray-700 mb-4">메모가 저장되었습니다.</div>
+      <button
+        onClick={() => setShowMemoSaved(false)}
+        className="mt-2 px-4 py-2 bg-[#FDA177] text-white rounded-full font-semibold hover:bg-[#fc5305] transition"
+      >
+        확인
+      </button>
+    </div>
+  </div>
+)}
+
           {(adjusted ? adjustedSteps : recipe.steps).map((step, idx) => {
             const cleanStep = step.replace(/^\d+[\.\)]?\s*/, "");
             return (
@@ -441,7 +459,7 @@ const handleSaveMemo = () => {
             {/* 플로팅 메모 버튼 */}
   <button
     onClick={() => setShowMemo(true)}
-    className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#fc5305] transition"
+    className="fixed bottom-20 bg-[#ffe2d9] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
     style={{ left: "calc(50% + 180px)", transform: "translateX(-50%)" }}
     aria-label="메모 작성"
   >
@@ -456,7 +474,7 @@ const handleSaveMemo = () => {
         <textarea
           value={memoText}
           onChange={(e) => setMemoText(e.target.value)}
-          placeholder="이 레시피에 대해 기억해두고 싶은 내용을 적어보세요"
+          placeholder="이 레시피에 대해 메모해보세요"
           className="w-full h-24 p-2 border border-gray-300 rounded-md text-sm"
         />
         <div className="flex justify-end space-x-2 mt-3">
