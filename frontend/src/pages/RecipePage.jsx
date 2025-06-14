@@ -72,7 +72,7 @@ export default function RecipePage() {
         setRecipe(res.data);
       } catch (err) {
         setError("레시피를 불러오는 데 실패했습니다.");
-        console.error(err);
+        //console.error(err);
       }
     };
 
@@ -85,7 +85,7 @@ export default function RecipePage() {
         const ids = res.data.recipe_ids.map(Number);
         setIsBookmarked(ids.includes(Number(id)));
       } catch (err) {
-        console.error("찜 상태 확인 실패:", err);
+        //console.error("찜 상태 확인 실패:", err);
       }
     };
 
@@ -93,28 +93,28 @@ export default function RecipePage() {
     fetchBookmarkStatus();
   }, [id, userId]);
 
- useEffect(() => {
-  if (recipe && userId) {
-    const newItem = {
-      id: recipe.id,
-      title: recipe.title,
-      image_url: recipe.image_url,
-      ingredients: recipe.ingredients,
-    };
+  useEffect(() => {
+    if (recipe && userId) {
+      const newItem = {
+        id: recipe.id,
+        title: recipe.title,
+        image_url: recipe.image_url,
+        ingredients: recipe.ingredients,
+      };
 
-    // recentViews: 최신 8개만
-    const key = `recentViews_${userId}`;
-    const viewed = JSON.parse(localStorage.getItem(key) || "[]");
-    const updatedRecent = [newItem, ...viewed.filter((item) => item.id !== recipe.id)].slice(0, 8);
-    localStorage.setItem(key, JSON.stringify(updatedRecent));
+      // recentViews: 최신 8개만
+      const key = `recentViews_${userId}`;
+      const viewed = JSON.parse(localStorage.getItem(key) || "[]");
+      const updatedRecent = [newItem, ...viewed.filter((item) => item.id !== recipe.id)].slice(0, 8);
+      localStorage.setItem(key, JSON.stringify(updatedRecent));
 
-    // longTermViews: 제한 없이 누적 저장
-    const longKey = `longTermViews_${userId}`;
-    const longList = JSON.parse(localStorage.getItem(longKey) || "[]");
-    const updatedLong = [newItem, ...longList.filter((item) => item.id !== recipe.id)];
-    localStorage.setItem(longKey, JSON.stringify(updatedLong));
-  }
-}, [recipe, userId]);
+      // longTermViews: 제한 없이 누적 저장
+      const longKey = `longTermViews_${userId}`;
+      const longList = JSON.parse(localStorage.getItem(longKey) || "[]");
+      const updatedLong = [newItem, ...longList.filter((item) => item.id !== recipe.id)];
+      localStorage.setItem(longKey, JSON.stringify(updatedLong));
+    }
+  }, [recipe, userId]);
 
   useEffect(() => {
     let timer;
@@ -181,28 +181,28 @@ export default function RecipePage() {
         setIsBookmarked(true);
       }
     } catch (err) {
-      console.error("찜 처리 실패:", err);
+      //console.error("찜 처리 실패:", err);
     }
   };
 
   const getCurrentDateTime = () => {
-  return new Date().toLocaleString([], {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+    return new Date().toLocaleString([], {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-const handleSaveMemo = () => {
-  const key = `memo_${userId}_${recipe.id}`;
-  const memo = { title: recipe.title, text: memoText, time: getCurrentDateTime() };
-  localStorage.setItem(key, JSON.stringify(memo));
-  setShowMemo(false);
-  setMemoText(""); 
-  setShowMemoSaved(true); 
-};
+  const handleSaveMemo = () => {
+    const key = `memo_${userId}_${recipe.id}`;
+    const memo = { title: recipe.title, text: memoText, time: getCurrentDateTime() };
+    localStorage.setItem(key, JSON.stringify(memo));
+    setShowMemo(false);
+    setMemoText("");
+    setShowMemoSaved(true);
+  };
 
   if (error) return <div className="p-4">{error}</div>;
   if (!recipe) return <div className="p-4">로딩 중...</div>;
@@ -260,11 +260,11 @@ const handleSaveMemo = () => {
                   state: {
                     recipe: adjusted
                       ? {
-                          ...recipe,
-                          ingredients: adjustedIngredients,
-                          steps: adjustedSteps,
-                          serving: adjustedServing,
-                        }
+                        ...recipe,
+                        ingredients: adjustedIngredients,
+                        steps: adjustedSteps,
+                        serving: adjustedServing,
+                      }
                       : recipe,
                   },
                 })
@@ -424,21 +424,21 @@ const handleSaveMemo = () => {
             </div>
           )}
 
-          
-{showMemoSaved && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
-      <div className="text-2xl font-bold text-green-600 mb-2">📌 저장 완료!</div>
-      <div className="text-sm text-gray-700 mb-4">메모가 저장되었습니다.</div>
-      <button
-        onClick={() => setShowMemoSaved(false)}
-        className="mt-2 px-4 py-2 bg-[#FDA177] text-white rounded-full font-semibold hover:bg-[#fc5305] transition"
-      >
-        확인
-      </button>
-    </div>
-  </div>
-)}
+
+          {showMemoSaved && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
+                <div className="text-2xl font-bold text-green-600 mb-2">📌 저장 완료!</div>
+                <div className="text-sm text-gray-700 mb-4">메모가 저장되었습니다.</div>
+                <button
+                  onClick={() => setShowMemoSaved(false)}
+                  className="mt-2 px-4 py-2 bg-[#FDA177] text-white rounded-full font-semibold hover:bg-[#fc5305] transition"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          )}
 
           {(adjusted ? adjustedSteps : recipe.steps).map((step, idx) => {
             const cleanStep = step.replace(/^\d+[\.\)]?\s*/, "");
@@ -456,44 +456,44 @@ const handleSaveMemo = () => {
             );
           })}
 
-            {/* 플로팅 메모 버튼 */}
-  <button
-    onClick={() => setShowMemo(true)}
-    className="fixed bottom-20 bg-[#ffe2d9] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
-    style={{ left: "calc(50% + 180px)", transform: "translateX(-50%)" }}
-    aria-label="메모 작성"
-  >
-    📝
-  </button>
+          {/* 플로팅 메모 버튼 */}
+          <button
+            onClick={() => setShowMemo(true)}
+            className="fixed bottom-20 bg-[#ffe2d9] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
+            style={{ left: "calc(50% + 180px)", transform: "translateX(-50%)" }}
+            aria-label="메모 작성"
+          >
+            📝
+          </button>
 
-  {/* 메모 작성 모달 */}
-  {showMemo && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-80 shadow-lg">
-        <h2 className="text-lg font-bold mb-2">레시피 메모</h2>
-        <textarea
-          value={memoText}
-          onChange={(e) => setMemoText(e.target.value)}
-          placeholder="이 레시피에 대해 메모해보세요"
-          className="w-full h-24 p-2 border border-gray-300 rounded-md text-sm"
-        />
-        <div className="flex justify-end space-x-2 mt-3">
-          <button
-            onClick={() => setShowMemo(false)}
-            className="text-sm text-gray-500 hover:underline"
-          >
-            취소
-          </button>
-          <button
-            onClick={handleSaveMemo}
-            className="bg-[#FDA177] text-white px-3 py-1 rounded-md text-sm hover:bg-[#fc5305]"
-          >
-            저장
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
+          {/* 메모 작성 모달 */}
+          {showMemo && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 w-80 shadow-lg">
+                <h2 className="text-lg font-bold mb-2">레시피 메모</h2>
+                <textarea
+                  value={memoText}
+                  onChange={(e) => setMemoText(e.target.value)}
+                  placeholder="이 레시피에 대해 메모해보세요"
+                  className="w-full h-24 p-2 border border-gray-300 rounded-md text-sm"
+                />
+                <div className="flex justify-end space-x-2 mt-3">
+                  <button
+                    onClick={() => setShowMemo(false)}
+                    className="text-sm text-gray-500 hover:underline"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleSaveMemo}
+                    className="bg-[#FDA177] text-white px-3 py-1 rounded-md text-sm hover:bg-[#fc5305]"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

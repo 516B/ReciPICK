@@ -85,4 +85,4 @@ cleaned_recipes = [preprocess_recipe(r) for r in recipes]
 with open(output_path, "w", encoding="utf-8") as f:
     json.dump(cleaned_recipes, f, ensure_ascii=False, indent=2)
 
-print(f"✅ 전처리 완료: {len(cleaned_recipes)}개 레시피 → {output_path} 에 저장되었습니다.")
+print(f"전처리 완료: {len(cleaned_recipes)}개 레시피 → {output_path} 에 저장되었습니다.")

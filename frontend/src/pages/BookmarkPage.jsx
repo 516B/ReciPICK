@@ -26,7 +26,7 @@ export default function BookmarkPage() {
         const recipeResults = await Promise.all(recipePromises);
         setRecipes(recipeResults);
       } catch (err) {
-        console.error("찜한 레시피 불러오기 실패:", err);
+        //console.error("찜한 레시피 불러오기 실패:", err);
       }
     };
     fetchBookmarkedRecipes();

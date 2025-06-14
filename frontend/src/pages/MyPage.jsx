@@ -85,90 +85,89 @@ export default function MyPage() {
   }, []);
 
   const fetchGptRecommend = async (recentList, bookmarked, key, userId) => {
-  try {
-    const res = await axios.post("http://localhost:8000/gpt/custom", {
-      recent_recipes: recentList,
-      bookmarked_recipe_ids: bookmarked,
-    });
-    
-    const result = res.data.recipes || [];
-    localStorage.setItem(`customGptRecommendations_${userId}`, JSON.stringify(result));
-    localStorage.setItem(`customGptRecommendationsKey_${userId}`, key);
-    localStorage.setItem(`customGptCacheTime_${userId}`, Date.now().toString());
-    setGptRecommendations(result);
-    setIsLoading(false);
-  } catch (err) {
-    console.error("❌ GPT 요청 실패:", err);
-    setGptRecommendations([]);
-    setIsLoading(false);
-  }
-};
-
-
-  const handleGptClick = () => {
-  if (isLoading || hasRequested || !userId) return;
-  setHasRequested(true);
-
-  const recKey = `customGptRecommendations_${userId}`;
-  const recCacheKey = `customGptRecommendationsKey_${userId}`;
-  const recCacheTime = `customGptCacheTime_${userId}`;
-  const lastKey = localStorage.getItem(recCacheKey);
-  const lastTime = Number(localStorage.getItem(recCacheTime));
-  const now = Date.now();
-  const isFresh = now - lastTime < 1000 * 60 * 60 * 6;
-
-  if (lastKey === cacheKey && isFresh) {
-    setGptRecommendations(JSON.parse(localStorage.getItem(recKey) || "[]"));
-    return;
-  }
-
-  setIsLoading(true);
-
-  const storedLong = localStorage.getItem(`longTermViews_${userId}`);
-  const parsedLong = storedLong ? JSON.parse(storedLong) : [];
-
-  const recentForPrompt = parsedLong
-    .filter(r =>
-      typeof r.title === "string" &&
-      r.title.trim() !== "" &&
-      Array.isArray(r.ingredients)
-    )
-    .map(r => ({
-      id: String(r.id),
-      title: r.title,
-      ingredients: (r.ingredients || [])
-        .map(i => i?.split?.(":")?.[0]?.trim())
-        .filter(name => typeof name === "string" && name && !SEASONINGS.includes(name))
-    }))
-    .filter(r => r.ingredients.length > 0);
-
-  axios.get("http://localhost:8000/bookmark/", {
-    params: { user_id: userId },
-  })
-    .then((res) => {
-      const bookmarked = res.data.recipe_ids
-        .filter(id => id !== null && id !== undefined)
-        .map(id => String(id));
-
-      return axios.post("http://localhost:8000/gpt/custom", {
-        recent_recipes: recentForPrompt,
+    try {
+      const res = await axios.post("http://localhost:8000/gpt/custom", {
+        recent_recipes: recentList,
         bookmarked_recipe_ids: bookmarked,
       });
-    })
-    .then((res) => {
+
       const result = res.data.recipes || [];
       localStorage.setItem(`customGptRecommendations_${userId}`, JSON.stringify(result));
-      localStorage.setItem(`customGptRecommendationsKey_${userId}`, cacheKey);
+      localStorage.setItem(`customGptRecommendationsKey_${userId}`, key);
       localStorage.setItem(`customGptCacheTime_${userId}`, Date.now().toString());
       setGptRecommendations(result);
       setIsLoading(false);
-    })
-    .catch((err) => {
-      console.error("GPT 요청 실패:", err);
+    } catch (err) {
+      //console.error("GPT 요청 실패:", err);
       setGptRecommendations([]);
       setIsLoading(false);
-    });
-};
+    }
+  };
+
+  const handleGptClick = () => {
+    if (isLoading || hasRequested || !userId) return;
+    setHasRequested(true);
+
+    const recKey = `customGptRecommendations_${userId}`;
+    const recCacheKey = `customGptRecommendationsKey_${userId}`;
+    const recCacheTime = `customGptCacheTime_${userId}`;
+    const lastKey = localStorage.getItem(recCacheKey);
+    const lastTime = Number(localStorage.getItem(recCacheTime));
+    const now = Date.now();
+    const isFresh = now - lastTime < 1000 * 60 * 60 * 6;
+
+    if (lastKey === cacheKey && isFresh) {
+      setGptRecommendations(JSON.parse(localStorage.getItem(recKey) || "[]"));
+      return;
+    }
+
+    setIsLoading(true);
+
+    const storedLong = localStorage.getItem(`longTermViews_${userId}`);
+    const parsedLong = storedLong ? JSON.parse(storedLong) : [];
+
+    const recentForPrompt = parsedLong
+      .filter(r =>
+        typeof r.title === "string" &&
+        r.title.trim() !== "" &&
+        Array.isArray(r.ingredients)
+      )
+      .map(r => ({
+        id: String(r.id),
+        title: r.title,
+        ingredients: (r.ingredients || [])
+          .map(i => i?.split?.(":")?.[0]?.trim())
+          .filter(name => typeof name === "string" && name && !SEASONINGS.includes(name))
+      }))
+      .filter(r => r.ingredients.length > 0);
+
+    axios.get("http://localhost:8000/bookmark/", {
+      params: { user_id: userId },
+    })
+      .then((res) => {
+        const bookmarked = res.data.recipe_ids
+          .filter(id => id !== null && id !== undefined)
+          .map(id => String(id));
+
+        return axios.post("http://localhost:8000/gpt/custom", {
+          recent_recipes: recentForPrompt,
+          bookmarked_recipe_ids: bookmarked,
+        });
+      })
+      .then((res) => {
+        const result = res.data.recipes || [];
+        localStorage.setItem(`customGptRecommendations_${userId}`, JSON.stringify(result));
+        localStorage.setItem(`customGptRecommendationsKey_${userId}`, cacheKey);
+        localStorage.setItem(`customGptCacheTime_${userId}`, Date.now().toString());
+        setGptRecommendations(result);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        //console.error("GPT 요청 실패:", err);
+        setGptRecommendations([]);
+        setIsLoading(false);
+      });
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -193,6 +192,7 @@ export default function MyPage() {
         {isLoggedIn ? (
           <div className="p-6 flex flex-col gap-4">
             {topIngredients.length > 0 && (
+                // [기능 1] 자주 쓴 재료 
               <div>
                 <h3 className="text-base font-semibold mb-2">자주 쓴 재료</h3>
                 <div className="flex flex-wrap gap-2">
@@ -213,50 +213,53 @@ export default function MyPage() {
               </div>
             )}
 
-           {recentRecipes.length > 0 && (
-  <>
-    <hr className="border-t border-gray-200 my-2" />
+            {recentRecipes.length > 0 && (
+                // [기능 2] 최근 본 레시피 
+              <>
+                <hr className="border-t border-gray-200 my-2" />
 
-    <div className="mt-1">
-      <h3 className="text-base font-semibold mb-2">최근 본 레시피</h3>
-      <div className="flex items-center gap-2">
-        <button onClick={handlePrev}>
-          <ChevronLeft size={20} />
-        </button>
+                <div className="mt-1">
+                  <h3 className="text-base font-semibold mb-2">최근 본 레시피</h3>
+                  <div className="flex items-center gap-2">
+                    <button onClick={handlePrev}>
+                      <ChevronLeft size={20} />
+                    </button>
 
-        <div className="grid grid-cols-2 gap-4 flex-1">
-          {visibleRecent.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => navigate(`/recipe/${item.id}`)}
-              className="cursor-pointer"
-            >
-              <img
-                src={item.image_url}
-                alt={item.title}
-                className="w-full h-32 object-cover rounded-md"
-              />
-              <div className="text-sm text-gray-800 text-center font-semibold h-[36px] leading-tight px-2 overflow-hidden text-ellipsis line-clamp-2">
-                {item.title}
-              </div>
-            </div>
-          ))}
-        </div>
+                    <div className="grid grid-cols-2 gap-4 flex-1">
+                      {visibleRecent.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => navigate(`/recipe/${item.id}`)}
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="w-full h-32 object-cover rounded-md"
+                          />
+                          <div className="text-sm text-gray-800 text-center font-semibold h-[36px] leading-tight px-2 overflow-hidden text-ellipsis line-clamp-2">
+                            {item.title}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
 
-        <button onClick={handleNext}>
-          <ChevronRight size={20} />
-        </button>
-      </div>
-    </div>
-  </>
-)}
-<hr className="border-t border-gray-200 my-1" />
-             <div className="mt-4">
+                    <button onClick={handleNext}>
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            <hr className="border-t border-gray-200 my-1" />
+            <div className="mt-4">
+                {/* [기능 3] GPT 맞춤 추천 */}
               <h3
                 onClick={handleGptClick}
                 className="text-base font-bold mb-3 cursor-pointer hover:underline"
               >
-                이런 레시피는 어떠세요?
+                🔍이런 레시피는 어떠세요?
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {isLoading ? (
@@ -286,40 +289,41 @@ export default function MyPage() {
             <hr className="border-t border-gray-200 my-2" />
 
             <div className="mt-4">
-  <h3 className="text-base font-bold mb-2">✏️ 저장한 메모</h3>
-  {memos.length === 0 ? (
-    <p className="text-sm text-gray-500">작성한 메모가 없습니다.</p>
-  ) : (
-    <ul className="grid grid-cols-2 gap-3">
-      {memos.map((memo, idx) => (
-        <li
-  key={idx}
-  className="relative border border-orange-300 bg-orange-100 text-orange-800 rounded-lg p-3 shadow-[0_2px_5px_rgba(0,0,0,0.08)] hover:shadow-md transition cursor-pointer h-40 flex flex-col justify-between"
->
-          {/* 삭제 버튼 */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              localStorage.removeItem(`memo_${userId}_${memo.recipeId}`);
-              setMemos((prev) => prev.filter((_, i) => i !== idx));
-            }}
-            className="absolute top-1 right-1 text-xs text-gray-400 hover:text-red-500"
-            aria-label="삭제"
-          >
-            ✕
-          </button>
+                {/* [기능 4] 로컬스토리지에 저장된 메모 목록 */}
+              <h3 className="text-base font-bold mb-2">✏️ 저장한 메모</h3>
+              {memos.length === 0 ? (
+                <p className="text-sm text-gray-500">작성한 메모가 없습니다.</p>
+              ) : (
+                <ul className="grid grid-cols-2 gap-3">
+                  {memos.map((memo, idx) => (
+                    <li
+                      key={idx}
+                      className="relative border border-orange-300 bg-orange-100 text-orange-800 rounded-lg p-3 shadow-[0_2px_5px_rgba(0,0,0,0.08)] hover:shadow-md transition cursor-pointer h-40 flex flex-col justify-between"
+                    >
+                      {/* 삭제 버튼 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          localStorage.removeItem(`memo_${userId}_${memo.recipeId}`);
+                          setMemos((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1 right-1 text-xs text-gray-400 hover:text-red-500"
+                        aria-label="삭제"
+                      >
+                        ✕
+                      </button>
 
-          {/* 메모 내용 */}
-          <div onClick={() => setSelectedMemo(memo)}>
-  <div className="text-sm font-bold text-[#7a3e0d] line-clamp-1">{memo.title}</div>
-  <div className="text-xs text-gray-500 mb-4">{memo.time}</div>
-  <div className="text-sm text-gray-800 line-clamp-2">{memo.text}</div>
-</div>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
+                      {/* 메모 내용 */}
+                      <div onClick={() => setSelectedMemo(memo)}>
+                        <div className="text-sm font-bold text-[#7a3e0d] line-clamp-1">{memo.title}</div>
+                        <div className="text-xs text-gray-500 mb-4">{memo.time}</div>
+                        <div className="text-sm text-gray-800 line-clamp-2">{memo.text}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
           </div>
         ) : (
@@ -348,31 +352,31 @@ export default function MyPage() {
         </button>
       )}
       {selectedMemo && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div className="bg-white rounded-xl p-6 w-80 shadow-lg relative">
-      <button
-        onClick={() => setSelectedMemo(null)}
-        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-sm"
-      >
-        ✕
-      </button>
-      <h3 className="text-base font-bold mb-1 text-[#7a3e0d]">{selectedMemo.title}</h3>
-      <div className="text-xs text-gray-400 mb-2">{selectedMemo.time}</div>
-      <p className="text-sm text-gray-800 whitespace-pre-wrap mb-4">{selectedMemo.text}</p>
-      <div className="text-right">
-  <button
-    onClick={() => {
-      navigate(`/recipe/${selectedMemo.recipeId}`);
-      setSelectedMemo(null);
-    }}
-    className="bg-[#FDA177] text-white px-4 py-2 rounded-full text-sm hover:bg-[#fc5305]"
-  >
-    레시피로 이동
-  </button>
-</div>
-    </div>
-  </div>
-)}
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-80 shadow-lg relative">
+            <button
+              onClick={() => setSelectedMemo(null)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-sm"
+            >
+              ✕
+            </button>
+            <h3 className="text-base font-bold mb-1 text-[#7a3e0d]">{selectedMemo.title}</h3>
+            <div className="text-xs text-gray-400 mb-2">{selectedMemo.time}</div>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap mb-4">{selectedMemo.text}</p>
+            <div className="text-right">
+              <button
+                onClick={() => {
+                  navigate(`/recipe/${selectedMemo.recipeId}`);
+                  setSelectedMemo(null);
+                }}
+                className="bg-[#FDA177] text-white px-4 py-2 rounded-full text-sm hover:bg-[#fc5305]"
+              >
+                레시피로 이동
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Footer />
     </div>
   );

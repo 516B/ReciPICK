@@ -24,4 +24,4 @@ input_file = os.path.join(BASE_DIR, 'data', 'recipes_cleaned.json')
 output_file = os.path.join(BASE_DIR, 'data', 'recipes_with_minutes.json')
 
 process_file(input_file, output_file)
-print("✅ cook_time_minutes 필드 추가 완료!")
+print("cook_time_minutes 필드 추가 완료")

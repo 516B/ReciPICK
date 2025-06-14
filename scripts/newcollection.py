@@ -10,9 +10,9 @@ client = Client({
 # 기존 컬렉션 삭제 (있을 경우)
 try:
     client.collections["recipes_gpt"].delete()
-    print("✅ 기존 recipes_gpt 삭제 완료")
+    print("기존 recipes_gpt 삭제 완료")
 except:
-    print("ℹ️ 기존 컬렉션 없음")
+    print("기존 컬렉션 없음")
 
 # 새 컬렉션 스키마 정의
 schema = {
@@ -31,4 +31,4 @@ schema = {
 
 # 생성
 client.collections.create(schema)
-print("✅ 새 컬렉션 recipes_gpt 생성 완료")
+print("새 컬렉션 recipes_gpt 생성 완료")

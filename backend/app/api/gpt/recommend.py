@@ -71,8 +71,6 @@ async def recommend_recipe(req: PromptRequest):
                 doc = hit["document"]
                 all_docs[doc["id"]] = doc
 
-        print(f"🔎 수집된 레시피 수: {len(all_docs)}")
-
         # 실제 재료 포함 여부 확인
         fully_matched = []
         partial_matched = []

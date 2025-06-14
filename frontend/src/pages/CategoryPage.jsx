@@ -52,7 +52,7 @@ export default function CategoryPage() {
         setHasMore(false);
       }
     } catch (err) {
-      console.error("카테고리 불러오기 오류:", err);
+      //console.error("카테고리 불러오기 오류:", err);
     }
   };
 
@@ -64,7 +64,7 @@ export default function CategoryPage() {
       });
       setBookmarkedIds(res.data.recipe_ids.map(id => Number(id)));
     } catch (err) {
-      console.error("찜 목록 불러오기 실패:", err);
+      //console.error("찜 목록 불러오기 실패:", err);
     }
   };
 
@@ -88,7 +88,7 @@ export default function CategoryPage() {
         setBookmarkedIds((prev) => [...prev, Number(recipeId)]);
       }
     } catch (err) {
-      console.warn("찜 처리 에러:", err.response?.data?.detail);
+      //console.warn("찜 처리 에러:", err.response?.data?.detail);
     }
   };
 
@@ -211,7 +211,7 @@ export default function CategoryPage() {
     onClick={scrollToTop}
     className="fixed bottom-20 right-1/2 translate-x-1/2 md:right-0 md:translate-x-0 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
     style={{
-      right: 'calc(50% - 215px)', // (430px/2) = 215, 앱 기준 오른쪽에 맞추기
+      right: 'calc(50% - 215px)', 
     }}
     aria-label="맨 위로"
   >

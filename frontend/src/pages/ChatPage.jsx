@@ -45,17 +45,29 @@ export default function ChatPage() {
   const [lastFilterCondition, setLastFilterCondition] = useState(null);
   const [filterPage, setFilterPage] = useState(1);
   const [selectedAlternative, setSelectedAlternative] = useState({});
+  const [showTopBtn, setShowTopBtn] = useState(false);
   const handleAlternativeSelect = (name, value) => {
     setSelectedAlternative((prev) => ({ ...prev, [name]: value }));
   };
   const [previousSource, setPreviousSource] = useState("");
-  
+
+  const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
   const displayTimestamp = getCurrentDateTime();
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+  const handleScroll = () => {
+    setShowTopBtn(window.scrollY > 200);
+  };
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
@@ -480,20 +492,10 @@ useEffect(() => {
                                     <span className="font-semibold mr-1">{name.trim()}:</span>
                                     <div className="ml-2 mt-1 space-y-1">
                                       {options.map((opt, i) => (
-                                        <label
-                                          key={i}
-                                          className="flex items-center space-x-2 text-xs"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <input
-                                            type="radio"
-                                            name={`radio-${name.trim()}`}
-                                            value={opt}
-                                            defaultChecked={i === 0}
-                                            onChange={() => handleAlternativeSelect(name.trim(), opt)}
-                                          />
-                                          <span>{opt}</span>
-                                        </label>
+                                        <div key={i} className="text-xs ml-2 text-gray-700">
+                                          - {opt}
+                                        </div>
+
                                       ))}
                                     </div>
                                   </>
@@ -507,39 +509,6 @@ useEffect(() => {
                             );
                           })}
 
-                          {substitutedItems.length > 0 && (
-                            <div
-                              className="text-xs text-gray-400 mt-2 ml-5 cursor-pointer"
-                              onClick={() => {
-                                const defaultSelected = { ...selectedAlternative };
-
-                                msg.content.ingredients.forEach((item) => {
-                                  const [name, optionsStr] = item.split(":");
-                                  const options = optionsStr.split(/\s*\|\s*/) || [];
-
-                                  const isFraction = /^\s*\d+\/\d+/.test(optionsStr);
-                                  const isSubstitute = optionsStr?.includes("|") && options.length > 1 && !isFraction;
-
-                                  // 대체안이면서 선택이 안 되어있으면 기본 1번 설정
-                                  if (isSubstitute && !defaultSelected[name.trim()]) {
-                                    defaultSelected[name.trim()] = options[0]; // ← 자동 선택
-                                  }
-                                });
-
-                                navigate(`/recipe/${msg.content.id}`, {
-                                  state: {
-                                    adjusted: true,
-                                    adjustedIngredients: msg.content.ingredients,
-                                    adjustedSteps: msg.content.steps,
-                                    adjustedServing: msg.content.serving,
-                                    selectedAlternative: defaultSelected,
-                                  },
-                                });
-                              }}
-                            >
-                              ... 더보기
-                            </div>
-                          )}
                         </ul>
                       );
                     })()}
@@ -610,6 +579,16 @@ useEffect(() => {
           </button>
         </div>
       </div>
+      {showTopBtn && (
+  <button
+    onClick={scrollToTop}
+    className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
+    style={{ right: 'calc(50% - 215px)' }}
+    aria-label="맨 위로"
+  >
+    <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+  </button>
+)}
     </div>
   );
 }
