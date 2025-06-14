@@ -73,14 +73,19 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  const initialMessage = location.state?.initialMessage;
+const initialMessage = location.state?.initialMessage;
+const hasSentInitial = useRef(false);
 
 useEffect(() => {
-  if (initialMessage) {
+  if (initialMessage && !hasSentInitial.current) {
     setInputText(initialMessage);
     handleSend(initialMessage);
+
+    navigate(location.pathname, { replace: true });
+    hasSentInitial.current = true;
   }
-}, [initialMessage]);
+}, [initialMessage, navigate, location.pathname]);
+
 
 useEffect(() => {
   const savedSeen = localStorage.getItem("seenRecipeIds");
@@ -461,13 +466,10 @@ useEffect(() => {
                 ) : msg.content.adjustedType === "substitute" ? (
                   //대체재료 추천 카드 UI
                   <div className="border border-gray-300 bg-white p-4 rounded-xl shadow-sm max-w-[95%]">
-                    <div className="text-base font-bold text-gray-900">
+                    <div className="text-base font-bold text-gray-900 mb-1">
                       {msg.content.title} ({msg.content.serving})
                     </div>
-                    <div className="text-xs text-gray-500 mt-1 mb-2">
-                      일부 재료를 대체한 레시피입니다.
-                    </div>
-                    <div className="text-sm text-gray-800 font-semibold mb-1">재료</div>
+                    <div className="text-sm text-gray-800 font-semibold mb-3">📌 사용 가능한 대체안</div>
                     {(() => {
                       const substitutedItems = msg.content.substitutedKeys
                         ? msg.content.ingredients.filter(item =>
@@ -476,7 +478,7 @@ useEffect(() => {
                         : msg.content.ingredients;
 
                       return (
-                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-0.5">
+                        <ul className="list-[circle] list-inside text-sm text-gray-700 space-y-0.5">
                           {substitutedItems.slice(0, 3).map((item, idx) => {
                             const [name, optionsStr] = item.split(":");
                             const options = optionsStr

@@ -202,6 +202,7 @@ export default function MyPage() {
                       onClick={() =>
                         navigate("/chat", {
                           state: { initialMessage: `${name} 들어간 요리 추천해줘` },
+                          replace: true, 
                         })
                       }
                       className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-full border border-orange-300 cursor-pointer hover:bg-orange-200"
