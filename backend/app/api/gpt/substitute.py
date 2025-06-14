@@ -1,13 +1,14 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from openai import OpenAI
+from openai import AsyncOpenAI
 import os
 from dotenv import load_dotenv
 import json
 import re
+import asyncio
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 router = APIRouter()
 
 class SubstituteRequest(BaseModel):
@@ -17,39 +18,47 @@ class SubstituteRequest(BaseModel):
     serving: str = ""
 
 def build_prompt(req: SubstituteRequest, strict=False):
+    title = req.substitutes[0] + " 없는 레시피" if req.serving == "" else f"{req.substitutes[0]} 없는 {req.serving} 기준 레시피"
     ingredients_str = "\n".join(req.ingredients)
     steps_str = "\n".join(f"{i+1}. {s}" for i, s in enumerate(req.steps))
     substitutes_str = ", ".join(req.substitutes)
 
-    base_prompt = (
+    prompt = (
         f"당신은 요리 전문가이자 레시피 분석 AI입니다.\n"
-        f"사용자가 다음 재료를 사용할 수 없습니다: {substitutes_str}.\n\n"
-        "지켜야 할 조건:\n"
-        "- substitutes 목록에 포함된 재료만 반드시 대체하세요. 다른 재료는 그대로 두세요.\n"
-        "- substitutes에 포함된 재료는 출력 JSON의 ingredients 배열에 반드시 포함되어야 합니다.\n"
-        "- substitutes에 없는 재료는 출력하지 마세요. 포함되면 잘못된 출력입니다.\n"
-        "- 예시: 사용자가 '생크림'만 요청한 경우, 출력은 생크림에 대한 대체안만 포함되어야 합니다.\n\n"
-        "출력 형식:\n"
+        f"다음은 하나의 레시피입니다. 제목, 전체 재료, 조리 순서를 기반으로 요리의 맥락을 파악하세요.\n"
+        f"사용자는 다음 재료를 사용할 수 없습니다: {substitutes_str}\n"
+        f"해당 재료들에 대해서만 대체안을 제시해 주세요.\n\n"
+
+        f"[레시피 제목]\n{title}\n\n"
+        f"[전체 재료 목록]\n{ingredients_str}\n\n"
+        f"[조리 순서]\n{steps_str}\n\n"
+
+        " 반드시 지켜야 할 조건:\n"
+        "1. 사용자가 사용할 수 없는 재료만 대체 대상입니다. 다른 재료는 절대 출력하지 마세요.\n"
+        "2. 대체안은 실제 요리에서 적절하고 자연스러운 조합이어야 합니다.\n"
+        "3. 하나의 재료에 여러 대체안이 가능할 경우 '|' 기호로 구분해 주세요.\n"
+        "4. 출력은 반드시 아래 형식을 따르세요:\n"
         "{\n"
-        "  \"ingredients\": [\"재료명: 대체안\"],\n"
-        "  \"steps\": [\"조리1\", \"조리2\", ...]\n"
-        "}\n\n"
+        "  \"ingredients\": [\"재료명: 대체안\"]\n"
+        "}\n"
+        "5. 출력값에 'OO 대신', '대체할 수 있는 재료는' 등의 문구는 절대 포함하지 마세요. 각 줄의 key가 이미 대체 대상입니다.\n\n"
+        "6. 각 대체안은 반드시 양(예: 1쪽, 1큰술, 1스푼, 약간 등)을 포함해야 하며, 단순히 재료 이름만 출력하면 안 됩니다.\n"
+        "7. '생략 가능' 또는 '대체 불가'와 같은 판단 문구는 반드시 기존 재료에만 붙여야 하며, 대체안에는 절대 포함되지 않아야 합니다."
+        "(o) 예: 마늘: 생강 4쪽 | 대파 1큰술  \n"
+        "(o) 예: 예: 마늘: 4쪽 (생략 가능)  \n"
+        "(x) 예: 마늘: 생강(대체 가능) | 대파(대체 가능)  \n"
+        
         "재료 출력 규칙:\n"
-        "1) 대체 가능:\n"
-        "- 형식: '재료명: 대체안1 (양) | 대체안2 (양)'\n"
-        "2) 생략 가능:\n"
-        "- 형식: '재료명: 기존 양(생략 가능)'\n"
-        "3) 대체 불가:\n"
-        "- 형식: '재료명: 기존 양(대체 불가)'\n\n"
-        f"조리 순서는 원래 단계 수({len(req.steps)})를 유지해야 하며, 대체된 재료만 조리 단계에 반영하세요.\n\n"
-        f"레시피 제목: {req.substitutes[0]} 없는 {req.serving} 기준 레시피\n"
-        f"재료:\n{ingredients_str}\n\n조리 순서:\n{steps_str}"
+        "- 대체 가능: '재료명: 대체안1 (양) | 대체안2 (양) | 대체안3 (양)'\n"
+        "- 생략 가능: '재료명: 기존 양(생략 가능)'\n"
+        "- 대체 불가: '재료명: 기존 양(대체 불가)'\n\n"
+        " 출력 예시:\n"
+        "- 생크림: 우유 100ml + 버터 1T | 두유 120ml\n"
+        "- 맛술: 청주 1T | 레몬즙 1T\n"
+        "- 파슬리: 생략 가능\n"
+        "- 마늘: 대체 불가\n"
     )
-
-    if strict:
-        base_prompt += f"\n\n주의: '{substitutes_str}' 재료 중 일부가 누락되었습니다. 반드시 포함해서 다시 출력하세요.\n"
-
-    return base_prompt
+    return prompt
 
 def is_placeholder(value: str) -> bool:
     if not value:
@@ -62,10 +71,9 @@ def normalize_parentheses(val: str) -> str:
     val = re.sub(r'\)\)+', ')', val)
     return val
 
-def get_substitute_response(req: SubstituteRequest, strict=False):
-    print("\n[GPT 요청] 대체안 생성 요청 중...\n")
+async def get_substitute_response(req: SubstituteRequest, strict=False):
     prompt = build_prompt(req, strict)
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "당신은 요리 전문가입니다."},
@@ -78,14 +86,10 @@ def get_substitute_response(req: SubstituteRequest, strict=False):
     if "{" in content:
         content = content[content.find("{"):]
     parsed = json.loads(content)
-    print("[GPT 응답 결과 ingredients]:")
-    for i in parsed.get("ingredients", []):
-        print("-", i)
     return {"parsed": parsed}
 
-def request_final_judgment(ingredient: str, amount: str, steps: list[str]) -> str:
+async def async_request_final_judgment(ingredient: str, amount: str, steps: list[str]) -> str:
     if any(kw in amount for kw in ["비정량", "약간", "적당량", "소량"]):
-        print(f"[최종 판단 건너뜀] {ingredient}: '{amount}' → 생략 가능\n")
         return "생략 가능"
 
     steps_str = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
@@ -100,8 +104,7 @@ def request_final_judgment(ingredient: str, amount: str, steps: list[str]) -> st
         f"레시피 조리 순서:\n{steps_str}"
     )
 
-    print(f"[GPT 요청] 최종 판단 요청: {ingredient} → GPT에게 생략 가능/대체 불가 판단 요청 중...")
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "당신은 요리 전문가입니다."},
@@ -110,90 +113,117 @@ def request_final_judgment(ingredient: str, amount: str, steps: list[str]) -> st
         temperature=0,
         max_tokens=100,
     )
-    result = response.choices[0].message.content.strip()
-    print(f"[GPT 응답 결과] {ingredient} → {result}\n")
-    return result
+    return response.choices[0].message.content.strip()
+
+async def async_get_substitute(sub: str, req: SubstituteRequest) -> tuple[str, str]:
+    collected_raw = []
+    collected_keys = set()
+    max_attempts = 4
+    attempts = 0
+
+    def is_placeholder(value: str) -> bool:
+        pattern = re.compile(r"(대체안\d*|정량|양|대체재|없음|생략 가능|대체불가|대체 불가)")
+        return bool(pattern.search(value))
+
+    def normalize_key(text: str) -> str:
+        text = text.lower()
+        text = re.sub(r"\([^)]*\)", "", text)          
+        text = re.sub(r"[\d\s\+\-mlgTt/:]+", "", text)  
+        return text.strip()
+
+    while len(collected_raw) < 3 and attempts < max_attempts:
+        result = await get_substitute_response(SubstituteRequest(
+            ingredients=req.ingredients,
+            steps=req.steps,
+            substitutes=[sub],
+            serving=req.serving
+        ))
+
+        ingredients_list = result["parsed"].get("ingredients", [])
+
+        #print(f"\n GPT 응답 #{attempts+1} for '{sub}':")
+        #print(json.dumps(result["parsed"], ensure_ascii=False, indent=2))
+
+        for i in ingredients_list:
+            if ":" not in i:
+                continue
+            name, raw_val = i.split(":", 1)
+            name = name.strip()
+            val = raw_val.strip()
+            if name != sub:
+                continue
+
+            options = [v.strip() for v in val.split("|")]
+            for opt in options:
+                if not is_placeholder(opt):
+                    key = normalize_key(opt)
+                    if key not in collected_keys:
+                        collected_keys.add(key)
+                        collected_raw.append(opt)
+
+        attempts += 1
+
+    #print(f"\n 최종 대체안 for '{sub}': {collected_raw if collected_raw else '없음'}")
+
+    if not collected_raw:
+        original_amount = next(
+            (i.split(":", 1)[1].strip() for i in req.ingredients if i.startswith(sub + ":")),
+            ""
+        )
+        judgment = await async_request_final_judgment(sub, original_amount, req.steps)
+        if judgment == "생략 가능":
+            return sub, f"{original_amount} (생략 가능)"
+        else:
+            return sub, f"{original_amount} (대체 불가)"
+    else:
+        return sub, normalize_parentheses(" | ".join(collected_raw))
 
 @router.post("/substitute")
 async def recommend_substitute(req: SubstituteRequest):
     try:
-        MAX_RETRY = 5
-        retry_count = 0
-        result = get_substitute_response(req)
-        parsed = result["parsed"]
+        #print(" 받은 요청 데이터:")
+        #print("substitutes:", req.substitutes)
 
-        def to_dict(ingredients_list):
-            return {
-                i.split(":")[0].strip(): i.split(":", 1)[1].strip()
-                for i in ingredients_list if ":" in i
-            }
+        # GPT에 개별 비동기 요청
+        tasks = [async_get_substitute(sub, req) for sub in req.substitutes]
+        results = await asyncio.gather(*tasks)
 
-        parsed_dict = to_dict(parsed.get("ingredients", []))
-
-        def find_retry_targets(parsed_dict):
-            retry = []
-            for sub in req.substitutes:
-                val = parsed_dict.get(sub)
-                if val is None or is_placeholder(val) or ("대체 불가" in val and retry_count < MAX_RETRY):
-                    retry.append(sub)
-            return retry
-
-        retry_targets = find_retry_targets(parsed_dict)
-
-        while retry_targets and retry_count < MAX_RETRY:
-            retry_count += 1
-            print(f"\n[재시도 {retry_count}] → 대상: {retry_targets}\n")
-            retry_req = SubstituteRequest(
-                ingredients=req.ingredients,
-                steps=req.steps,
-                substitutes=retry_targets,
-                serving=req.serving,
-            )
-            retry_result = get_substitute_response(retry_req, strict=True)
-            retry_parsed = retry_result["parsed"]
-            retry_dict = to_dict(retry_parsed.get("ingredients", []))
-
-            still_missing = []
-            for k in retry_targets:
-                v = retry_dict.get(k)
-                original_amount = next((i.split(":", 1)[1].strip() for i in req.ingredients if i.startswith(k + ":")), "")
-                if v:
-                    if is_placeholder(v):
-                        still_missing.append(k)
-                    elif "대체 불가" in v and retry_count < MAX_RETRY:
-                        still_missing.append(k)
-                    else:
-                        parsed_dict[k] = v
-                else:
-                    still_missing.append(k)
-            retry_targets = still_missing
-
-        for sub in req.substitutes:
-            val = parsed_dict.get(sub)
-            if val is None or is_placeholder(val):
-                original_amount = next((i.split(":", 1)[1].strip() for i in req.ingredients if i.startswith(sub + ":")), "")
-                judgment = request_final_judgment(sub, original_amount, req.steps)
-                if judgment == "생략 가능":
-                    parsed_dict[sub] = f"{original_amount} (생략 가능)"
-                else:
-                    parsed_dict[sub] = f"{original_amount} (대체 불가)"
+        parsed_dict = {key: val for key, val in results}
 
         merged_ingredients = []
+        already_handled = set()
+
         for item in req.ingredients:
-            if ":" in item:
-                k, v = item.split(":", 1)
-                key = k.strip()
-                original_val = v.strip()
-                val = parsed_dict.get(key, original_val)
-                val = normalize_parentheses(val)
-                merged_ingredients.append(f"{key}: {val}")
+            if ":" not in item:
+                continue
+            k, v = item.split(":", 1)
+            key = k.strip()
+            original_val = v.strip()
 
-        parsed["ingredients"] = merged_ingredients
-        print("\n[최종 결과 ingredients]:")
-        for i in merged_ingredients:
-            print("-", i)
+            if key in already_handled:
+                continue  
 
-        return {"result": parsed}
+            if key in parsed_dict:
+                val = parsed_dict[key]
+                if val.strip() == "(대체 불가)":
+                    merged_ingredients.append(f"{key}: {original_val} (대체 불가)")
+                elif val.endswith("(생략 가능)"):
+                    merged_ingredients.append(f"{key}: {original_val} (생략 가능)")
+                else:
+                    merged_ingredients.append(f"{key}: {val}")
+            else:
+                merged_ingredients.append(f"{key}: {original_val}")
+            
+            already_handled.add(key)
+
+        final_result = {
+            "ingredients": merged_ingredients
+        }
+
+        #print("\n 최종 응답 내용:")
+        #print(json.dumps(final_result, ensure_ascii=False, indent=2))
+
+        return {"result": final_result}
 
     except Exception as e:
         import traceback
