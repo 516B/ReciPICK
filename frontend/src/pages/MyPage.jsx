@@ -7,7 +7,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SEASONINGS = [
   "소금", "설탕", "간장", "식초", "후추", "고춧가루", "고추장", "된장", "참기름", "들기름",
-  "물엿", "맛술", "청주", "케첩", "마요네즈", "쌈장", "양조간장", "진간장", "미림", "물"
+  "물엿", "맛술", "청주", "케첩", "마요네즈", "쌈장", "양조간장", "진간장", "미림", "물", "올리고당",
+  "밀가루", "식용유", "다진마늘", "다진 마늘"
 ];
 
 export default function MyPage() {
@@ -150,11 +151,16 @@ export default function MyPage() {
                 <div className="flex flex-wrap gap-2">
                   {topIngredients.map((name, index) => (
                     <span
-                      key={index}
-                      className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-full border border-orange-300"
-                    >
-                      {name}
-                    </span>
+  key={index}
+  onClick={() =>
+    navigate("/chat", {
+      state: { initialMessage: `${name} 들어간 요리 추천해줘` },
+    })
+  }
+  className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-full border border-orange-300 cursor-pointer hover:bg-orange-200"
+>
+  {name}
+</span>
                   ))}
                 </div>
               </div>
@@ -199,7 +205,7 @@ export default function MyPage() {
                 {isLoading ? (
                   <div className="col-span-2 text-sm text-gray-400">레시피 서치 중...</div>
                 ) : gptRecommendations.length === 0 ? (
-                  <div className="col-span-2 text-sm text-gray-400">클릭을 통해 AI 추천을 확인해보세요.</div>
+                  <div className="col-span-2 text-sm text-gray-400">클릭을 통해 내 취향에 맞는 레시피를 확인해보세요.</div>
                 ) : (
                   gptRecommendations.slice(0, 6).map((rec) => (
                     <div

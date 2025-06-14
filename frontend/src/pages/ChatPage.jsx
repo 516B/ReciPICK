@@ -40,15 +40,14 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState("");
   const chatEndRef = useRef(null);
   const hasPostedIntro = useRef(false);
-
   const [previousIngredients, setPreviousIngredients] = useState([]);
   const [seenRecipeIds, setSeenRecipeIds] = useState([]);
   const [lastFilterCondition, setLastFilterCondition] = useState(null);
   const [filterPage, setFilterPage] = useState(1);
-  const [selectedAlternative, setSelectedAlternative] = useState({});
-  const handleAlternativeSelect = (name, value) => {
-    setSelectedAlternative((prev) => ({ ...prev, [name]: value }));
-  };
+  // const [selectedAlternative, setSelectedAlternative] = useState({});
+  // const handleAlternativeSelect = (name, value) => {
+  //   setSelectedAlternative((prev) => ({ ...prev, [name]: value }));
+  // };
 
   const displayTimestamp = getCurrentDateTime();
 
@@ -92,6 +91,53 @@ export default function ChatPage() {
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
+useEffect(() => {
+  const initialMessage = location.state?.initialMessage;
+  if (initialMessage) {
+    const userMessage = {
+      id: messages.length + 1,
+      sender: "user",
+      type: "text",
+      content: initialMessage,
+      time: getCurrentTime(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    axios.post("http://localhost:8000/gpt/recommend", {
+      message: initialMessage,
+      previous_ingredients: previousIngredients,
+      seen_recipe_ids: seenRecipeIds,
+    }).then((res) => {
+      const recipeList = res.data.recipes;
+      setPreviousIngredients(res.data.ingredients || []);
+      setSeenRecipeIds(res.data.seen_recipe_ids || []);
+
+      const botMessage = {
+        id: messages.length + 2,
+        sender: "bot",
+        type: recipeList.length > 0 ? "recommendation" : "text",
+        content:
+          recipeList.length > 0
+            ? { recipes: recipeList }
+            : "추천 결과가 없어요.",
+        time: getCurrentTime(),
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    }).catch((err) => {
+      setMessages((prev) => [...prev, {
+        id: messages.length + 2,
+        sender: "bot",
+        type: "text",
+        content: `오류 발생: ${err.message}`,
+        time: getCurrentTime(),
+      }]);
+    });
+
+    navigate(location.pathname, { replace: true }); // 상태 초기화
+  }
+}, [location.state]);
+
 
   const handleSend = async () => {
     const userText = inputText.trim();
@@ -104,7 +150,6 @@ export default function ChatPage() {
       const timeMatch = userText.match(/(\d+)\s*분\s*(이내|이상|넘는|초과|이하)?/);
       const hourMatch = userText.match(/(\d+)\s*시간\s*(이내|이상|넘는|초과|이하)?/);
 
-
       // 1. 난이도/시간 기반 필터 처리
       if (levelMatch || timeMatch || hourMatch) {
         const difficulty = levelMatch?.[1];
@@ -112,7 +157,6 @@ export default function ChatPage() {
         let maxTime = null;
         let direction = "";
         let cookTimeString = null;
-
 
         if (timeMatch) {
           maxTime = parseInt(timeMatch[1], 10);
@@ -151,7 +195,7 @@ export default function ChatPage() {
             exclude_ids: seenRecipeIds,
           },
         });
-        
+
         const recipes = res.data.recipes || [];
         const botMessage = {
           id: messages.length + 2,
@@ -159,7 +203,7 @@ export default function ChatPage() {
           type: recipes.length > 0 ? "recommendation" : "text",
           content:
             recipes.length > 0
-              ? { recipes }
+              ? { recipes, source: "difficulty-time" }
               : `${difficulty || ""} ${cookTimeString
                 ? `(조리 시간: ${cookTimeString})`
                 : maxTime
@@ -212,7 +256,6 @@ export default function ChatPage() {
       const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
-
         const res = await axios.post("http://localhost:8000/gpt/servings", {
           title: recipeData.title,
           ingredients: recipeData.ingredients,
@@ -246,13 +289,11 @@ export default function ChatPage() {
         return;
       }
 
-
       // 3. GPT 대체 재료 추천
       const substituteKeywords = /(빼고|대신|없어|대체|바꿔)/;
       if (substituteKeywords.test(userText) && recipeData) {
         const ingredientNames = recipeData.ingredients.map((i) => i.split(":")[0].trim());
         const substituteTargets = ingredientNames.filter((name) => userText.includes(name));
-
 
         if (substituteTargets.length > 0) {
           const res = await axios.post("http://localhost:8000/gpt/substitute", {
@@ -262,7 +303,6 @@ export default function ChatPage() {
             serving: recipeData.serving,
           });
 
-
           const result = res.data.result;
           const notify = {
             id: messages.length + 2,
@@ -271,7 +311,6 @@ export default function ChatPage() {
             content: `다음 재료를 대체했어요: ${substituteTargets.join(", ")}`,
             time: getCurrentTime(),
           };
-
 
           const substituteCard = {
             id: messages.length + 3,
@@ -293,8 +332,7 @@ export default function ChatPage() {
         }
       }
 
-
-      // 4. GPT 재료 기반 레시피 추천 
+      // 4. GPT 재료 기반 레시피 추천
       const res = await axios.post("http://localhost:8000/gpt/recommend", {
         message: userText,
         previous_ingredients: previousIngredients,
@@ -379,19 +417,25 @@ export default function ChatPage() {
                         </span>
                       ))}
                     {msg.type === "recommendation" && (
-                      <ul className="list-disc list-inside space-y-1">
-                        {msg.content.recipes.map((recipe) => (
-                          <li key={recipe.id}>
-                            <Link to={`/recipe/${recipe.id}`} className="text-blue-600 hover:underline">
-                              {recipe.title}
-                            </Link>
-                          </li>
-                        ))}
+                      <ul className="space-y-1">
+                        {msg.content.recipes.map((recipe) => {
+                          let emoji = "🍽️"; // 기본값
+
+                          if (msg.content.source === "difficulty-time") emoji = "⏱️";
+                          return (
+                            <li key={recipe.id} className="flex items-start">
+                              <span className="mr-2">{emoji}</span>
+                              <Link to={`/recipe/${recipe.id}`} className="text-blue-600 hover:underline">
+                                {recipe.title}
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
                 ) : msg.content.adjustedType === "substitute" ? (
-                  //대체재료 추천 카드 UI 
+                  //대체재료 추천 카드 UI
                   <div className="border border-gray-300 bg-white p-4 rounded-xl shadow-sm max-w-[95%]">
                     <div className="text-base font-bold text-gray-900">
                       {msg.content.title} ({msg.content.serving})
@@ -399,7 +443,7 @@ export default function ChatPage() {
                     <div className="text-xs text-gray-500 mt-1 mb-2">
                       일부 재료를 대체한 레시피입니다.
                     </div>
-                    <div className="text-sm text-gray-800 font-semibold mb-1">재료</div>
+                    <div className="text-sm text-gray-800 font-semibold mb-1">📌 사용 가능한 대체안</div>
                     {(() => {
                       const substitutedItems = msg.content.substitutedKeys
                         ? msg.content.ingredients.filter(item =>
@@ -407,18 +451,13 @@ export default function ChatPage() {
                         )
                         : msg.content.ingredients;
 
-
                       return (
                         <ul className="list-disc list-inside text-sm text-gray-700 space-y-0.5">
                           {substitutedItems.slice(0, 3).map((item, idx) => {
                             const [name, optionsStr] = item.split(":");
                             const options = optionsStr
-                              ? optionsStr.split(/\s+\/\s+/) 
-                              : [];
-
-
-                            const isProbablyFraction = /^\s*\d+\/\d+/.test(optionsStr);
-                            const isSubstitute = optionsStr?.includes("/") && options.length > 1 && !isProbablyFraction;
+                              ? optionsStr.split(/\s*\|\s*/) : [];
+                            const isSubstitute = optionsStr?.includes("|") && options.length > 1
 
 
                             return (
@@ -428,20 +467,10 @@ export default function ChatPage() {
                                     <span className="font-semibold mr-1">{name.trim()}:</span>
                                     <div className="ml-2 mt-1 space-y-1">
                                       {options.map((opt, i) => (
-                                        <label
-                                          key={i}
-                                          className="flex items-center space-x-2 text-xs"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <input
-                                            type="radio"
-                                            name={`radio-${name.trim()}`}
-                                            value={opt}
-                                            defaultChecked={i === 0}
-                                            onChange={() => handleAlternativeSelect(name.trim(), opt)}
-                                          />
-                                          <span>{opt}</span>
-                                        </label>
+                                        <div key={i} className="text-xs ml-2 text-gray-700">
+                                          - {opt}
+                                        </div>
+
                                       ))}
                                     </div>
                                   </>
@@ -454,37 +483,6 @@ export default function ChatPage() {
                               </li>
                             );
                           })}
-
-
-                          {substitutedItems.length > 0 && (
-                            <div
-                              className="text-xs text-gray-400 mt-2 ml-5 cursor-pointer"
-                              onClick={() => {
-                                const defaultSelected = { ...selectedAlternative };
-                                msg.content.ingredients.forEach((item) => {
-                                  const [name, optionsStr] = item.split(":");
-                                  const options = optionsStr?.split(/\s+\/\s+/) || [];
-                                  const isFraction = /^\s*\d+\/\d+/.test(optionsStr);
-                                  const isSubstitute = optionsStr?.includes("/") && options.length > 1 && !isFraction;
-                                  // 선택 안 한 재료는 1번(맨 앞)으로 자동 세팅
-                                  if (isSubstitute && !defaultSelected[name.trim()]) {
-                                    defaultSelected[name.trim()] = options[0];
-                                  }
-                                });
-                                navigate(`/recipe/${msg.content.id}`, {
-                                  state: {
-                                    adjusted: true,
-                                    adjustedIngredients: msg.content.ingredients,
-                                    adjustedSteps: msg.content.steps,
-                                    adjustedServing: msg.content.serving,
-                                    selectedAlternative: defaultSelected,
-                                  },
-                                });
-                              }}
-                            >
-                              ... 더보기
-                            </div>
-                          )}
                         </ul>
                       );
                     })()}
@@ -558,6 +556,4 @@ export default function ChatPage() {
     </div>
   );
 }
-
-
 

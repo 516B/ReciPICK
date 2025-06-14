@@ -45,6 +45,10 @@ export default function RecipePage() {
   alarmSound.volume = 0.5;
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
+  const [showMemo, setShowMemo] = useState(false);
+  const [memoText, setMemoText] = useState("");
+
+
   const speakSteps = (step) => {
     const utterance = new SpeechSynthesisUtterance(step);
     utterance.lang = "ko-KR";
@@ -179,6 +183,24 @@ export default function RecipePage() {
       console.error("찜 처리 실패:", err);
     }
   };
+
+  const getCurrentDateTime = () => {
+  return new Date().toLocaleString([], {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const handleSaveMemo = () => {
+  const key = `memo_${userId}_${recipe.id}`;
+  const memo = { text: memoText, time: getCurrentDateTime() };
+  localStorage.setItem(key, JSON.stringify(memo));
+  setShowMemo(false);
+  alert("메모가 저장되었습니다!");
+};
 
   if (error) return <div className="p-4">{error}</div>;
   if (!recipe) return <div className="p-4">로딩 중...</div>;
@@ -389,7 +411,7 @@ export default function RecipePage() {
           {showTimeUpModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
-                <div className="text-2xl font-bold text-red-600 mb-2">⏰ 시간이 끝났습니다!</div>
+                <div className="text-2xl font-bold text-red-600 mb-2">⏰ Time Out!</div>
                 <button
                   onClick={() => setShowTimeUpModal(false)}
                   className="mt-4 px-4 py-2 bg-[#FDA177] text-white rounded-full font-semibold hover:bg-[#fc5305] transition"
@@ -415,6 +437,46 @@ export default function RecipePage() {
               </div>
             );
           })}
+
+            {/* 플로팅 메모 버튼 */}
+  <button
+    onClick={() => setShowMemo(true)}
+    className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#fc5305] transition"
+    style={{ left: "calc(50% + 180px)", transform: "translateX(-50%)" }}
+    aria-label="메모 작성"
+  >
+    📝
+  </button>
+
+  {/* 메모 작성 모달 */}
+  {showMemo && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-80 shadow-lg">
+        <h2 className="text-lg font-bold mb-2">레시피 메모</h2>
+        <textarea
+          value={memoText}
+          onChange={(e) => setMemoText(e.target.value)}
+          placeholder="이 레시피에 대해 기억해두고 싶은 내용을 적어보세요"
+          className="w-full h-24 p-2 border border-gray-300 rounded-md text-sm"
+        />
+        <div className="flex justify-end space-x-2 mt-3">
+          <button
+            onClick={() => setShowMemo(false)}
+            className="text-sm text-gray-500 hover:underline"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleSaveMemo}
+            className="bg-[#FDA177] text-white px-3 py-1 rounded-md text-sm hover:bg-[#fc5305]"
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
         </div>
       </div>
     </div>
