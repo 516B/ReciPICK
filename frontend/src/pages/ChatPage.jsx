@@ -44,10 +44,12 @@ export default function ChatPage() {
   const [seenRecipeIds, setSeenRecipeIds] = useState([]);
   const [lastFilterCondition, setLastFilterCondition] = useState(null);
   const [filterPage, setFilterPage] = useState(1);
-  // const [selectedAlternative, setSelectedAlternative] = useState({});
-  // const handleAlternativeSelect = (name, value) => {
-  //   setSelectedAlternative((prev) => ({ ...prev, [name]: value }));
-  // };
+  const [selectedAlternative, setSelectedAlternative] = useState({});
+  const handleAlternativeSelect = (name, value) => {
+    setSelectedAlternative((prev) => ({ ...prev, [name]: value }));
+  };
+  const [previousSource, setPreviousSource] = useState("");
+  
 
   const displayTimestamp = getCurrentDateTime();
 
@@ -90,54 +92,6 @@ export default function ChatPage() {
       });
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
-
-useEffect(() => {
-  const initialMessage = location.state?.initialMessage;
-  if (initialMessage) {
-    const userMessage = {
-      id: messages.length + 1,
-      sender: "user",
-      type: "text",
-      content: initialMessage,
-      time: getCurrentTime(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    axios.post("http://localhost:8000/gpt/recommend", {
-      message: initialMessage,
-      previous_ingredients: previousIngredients,
-      seen_recipe_ids: seenRecipeIds,
-    }).then((res) => {
-      const recipeList = res.data.recipes;
-      setPreviousIngredients(res.data.ingredients || []);
-      setSeenRecipeIds(res.data.seen_recipe_ids || []);
-
-      const botMessage = {
-        id: messages.length + 2,
-        sender: "bot",
-        type: recipeList.length > 0 ? "recommendation" : "text",
-        content:
-          recipeList.length > 0
-            ? { recipes: recipeList }
-            : "추천 결과가 없어요.",
-        time: getCurrentTime(),
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-    }).catch((err) => {
-      setMessages((prev) => [...prev, {
-        id: messages.length + 2,
-        sender: "bot",
-        type: "text",
-        content: `오류 발생: ${err.message}`,
-        time: getCurrentTime(),
-      }]);
-    });
-
-    navigate(location.pathname, { replace: true }); // 상태 초기화
-  }
-}, [location.state]);
-
 
   const handleSend = async () => {
     const userText = inputText.trim();
@@ -244,9 +198,13 @@ useEffect(() => {
           sender: "bot",
           type: recipes.length > 0 ? "recommendation" : "text",
           content:
-            recipes.length > 0 ? { recipes } : "더 이상 추천할 레시피가 없어요!",
+            recipes.length > 0 ? { recipes, source: "difficulty-time" } : "더 이상 추천할 레시피가 없어요!",
           time: getCurrentTime(),
         };
+
+        if (recipes.length > 0) {
+    setPreviousSource("difficulty-time"); // ✅ 기억 유지
+  }
 
         setMessages((prev) => [...prev, botMessage]);
         return;
@@ -343,13 +301,21 @@ useEffect(() => {
       setPreviousIngredients(res.data.ingredients || []);
       setSeenRecipeIds(res.data.seen_recipe_ids || []);
 
+      const isIngredientSearch = res.data.ingredients?.length > 0;
+      const currentSource = isIngredientSearch ? "ingredient" : previousSource || "difficulty-time";
+
       const botMessage = {
         id: messages.length + 2,
         sender: "bot",
         type: recipeList.length > 0 ? "recommendation" : "text",
-        content: recipeList.length > 0 ? { recipes: recipeList } : "추천 결과가 없어요.",
+        content: recipeList.length > 0 ? { recipes: recipeList,
+        source: currentSource, } : "추천 결과가 없어요.",
         time: getCurrentTime(),
       };
+
+      if (recipeList.length > 0) {
+        setPreviousSource(currentSource);
+      }
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
@@ -421,7 +387,8 @@ useEffect(() => {
                         {msg.content.recipes.map((recipe) => {
                           let emoji = "🍽️"; // 기본값
 
-                          if (msg.content.source === "difficulty-time") emoji = "⏱️";
+                          if (msg.content.source === "difficulty-time") emoji = "⏱️";      
+
                           return (
                             <li key={recipe.id} className="flex items-start">
                               <span className="mr-2">{emoji}</span>
@@ -443,7 +410,7 @@ useEffect(() => {
                     <div className="text-xs text-gray-500 mt-1 mb-2">
                       일부 재료를 대체한 레시피입니다.
                     </div>
-                    <div className="text-sm text-gray-800 font-semibold mb-1">📌 사용 가능한 대체안</div>
+                    <div className="text-sm text-gray-800 font-semibold mb-1">재료</div>
                     {(() => {
                       const substitutedItems = msg.content.substitutedKeys
                         ? msg.content.ingredients.filter(item =>
@@ -457,8 +424,9 @@ useEffect(() => {
                             const [name, optionsStr] = item.split(":");
                             const options = optionsStr
                               ? optionsStr.split(/\s*\|\s*/) : [];
-                            const isSubstitute = optionsStr?.includes("|") && options.length > 1
 
+                            const isProbablyFraction = /^\s*\d+\/\d+/.test(optionsStr);
+                            const isSubstitute = optionsStr?.includes("|") && options.length > 1 && !isProbablyFraction;
 
                             return (
                               <li key={idx} className="text-sm text-gray-700">
@@ -467,10 +435,20 @@ useEffect(() => {
                                     <span className="font-semibold mr-1">{name.trim()}:</span>
                                     <div className="ml-2 mt-1 space-y-1">
                                       {options.map((opt, i) => (
-                                        <div key={i} className="text-xs ml-2 text-gray-700">
-                                          - {opt}
-                                        </div>
-
+                                        <label
+                                          key={i}
+                                          className="flex items-center space-x-2 text-xs"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <input
+                                            type="radio"
+                                            name={`radio-${name.trim()}`}
+                                            value={opt}
+                                            defaultChecked={i === 0}
+                                            onChange={() => handleAlternativeSelect(name.trim(), opt)}
+                                          />
+                                          <span>{opt}</span>
+                                        </label>
                                       ))}
                                     </div>
                                   </>
@@ -483,6 +461,40 @@ useEffect(() => {
                               </li>
                             );
                           })}
+
+                          {substitutedItems.length > 0 && (
+                            <div
+                              className="text-xs text-gray-400 mt-2 ml-5 cursor-pointer"
+                              onClick={() => {
+                                const defaultSelected = { ...selectedAlternative };
+
+                                msg.content.ingredients.forEach((item) => {
+                                  const [name, optionsStr] = item.split(":");
+                                  const options = optionsStr.split(/\s*\|\s*/) || [];
+
+                                  const isFraction = /^\s*\d+\/\d+/.test(optionsStr);
+                                  const isSubstitute = optionsStr?.includes("|") && options.length > 1 && !isFraction;
+
+                                  // 대체안이면서 선택이 안 되어있으면 기본 1번 설정
+                                  if (isSubstitute && !defaultSelected[name.trim()]) {
+                                    defaultSelected[name.trim()] = options[0]; // ← 자동 선택
+                                  }
+                                });
+
+                                navigate(`/recipe/${msg.content.id}`, {
+                                  state: {
+                                    adjusted: true,
+                                    adjustedIngredients: msg.content.ingredients,
+                                    adjustedSteps: msg.content.steps,
+                                    adjustedServing: msg.content.serving,
+                                    selectedAlternative: defaultSelected,
+                                  },
+                                });
+                              }}
+                            >
+                              ... 더보기
+                            </div>
+                          )}
                         </ul>
                       );
                     })()}
