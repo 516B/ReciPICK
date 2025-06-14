@@ -70,6 +70,18 @@ useEffect(() => {
   }
 }, [initialMessage]);
 
+useEffect(() => {
+  const savedSeen = localStorage.getItem("seenRecipeIds");
+  const savedFilter = localStorage.getItem("lastFilterCondition");
+  const savedPage = localStorage.getItem("filterPage");
+  const storedPrevIng = localStorage.getItem("previousIngredients")
+
+  if (savedSeen) setSeenRecipeIds(JSON.parse(savedSeen));
+  if (savedFilter) setLastFilterCondition(JSON.parse(savedFilter));
+  if (savedPage) setFilterPage(Number(savedPage));
+  if (storedPrevIng) setPreviousIngredients(JSON.parse(storedPrevIng));
+}, []);
+
   useEffect(() => {
     if (passedRecipe) {
       localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
@@ -212,7 +224,7 @@ useEffect(() => {
         };
 
         if (recipes.length > 0) {
-    setPreviousSource("difficulty-time"); // ✅ 기억 유지
+    setPreviousSource("difficulty-time"); 
   }
 
         setMessages((prev) => [...prev, botMessage]);
@@ -308,7 +320,11 @@ useEffect(() => {
 
       const recipeList = res.data.recipes;
       setPreviousIngredients(res.data.ingredients || []);
+      localStorage.setItem("previousIngredients", JSON.stringify(res.data.ingredients || []));
       setSeenRecipeIds(res.data.seen_recipe_ids || []);
+
+      setLastFilterCondition(null);
+      setFilterPage(1);
 
       const isIngredientSearch = res.data.ingredients?.length > 0;
       const currentSource = isIngredientSearch ? "ingredient" : previousSource || "difficulty-time";
@@ -342,6 +358,10 @@ useEffect(() => {
   const clearMessages = () => {
     localStorage.removeItem("chatMessages");
     localStorage.removeItem("recipeForChat");
+    localStorage.removeItem("seenRecipeIds");
+    localStorage.removeItem("lastFilterCondition");
+    localStorage.removeItem("filterPage");
+    localStorage.removeItem("previousIngredients");
     setMessages([
       {
         id: 1,
@@ -364,6 +384,22 @@ useEffect(() => {
       handleSend();
     }
   };
+
+  // seenRecipeIds가 바뀌면 저장
+useEffect(() => {
+  localStorage.setItem("seenRecipeIds", JSON.stringify(seenRecipeIds));
+}, [seenRecipeIds]);
+
+// lastFilterCondition 바뀌면 저장
+useEffect(() => {
+  localStorage.setItem("lastFilterCondition", JSON.stringify(lastFilterCondition));
+}, [lastFilterCondition]);
+
+// filterPage 바뀌면 저장
+useEffect(() => {
+  localStorage.setItem("filterPage", filterPage.toString());
+}, [filterPage]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f8fa] items-center">
