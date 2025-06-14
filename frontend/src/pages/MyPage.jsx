@@ -86,16 +86,11 @@ export default function MyPage() {
 
   const fetchGptRecommend = async (recentList, bookmarked, key, userId) => {
   try {
-    console.log("🔥 보낸 recentList:", recentList);
-    console.log("🔥 보낸 bookmarked:", bookmarked);
-
     const res = await axios.post("http://localhost:8000/gpt/custom", {
       recent_recipes: recentList,
       bookmarked_recipe_ids: bookmarked,
     });
-
-    console.log("✅ GPT 응답:", res.data);
-
+    
     const result = res.data.recipes || [];
     localStorage.setItem(`customGptRecommendations_${userId}`, JSON.stringify(result));
     localStorage.setItem(`customGptRecommendationsKey_${userId}`, key);
@@ -169,7 +164,7 @@ export default function MyPage() {
       setIsLoading(false);
     })
     .catch((err) => {
-      console.error("❌ GPT 요청 실패:", err);
+      console.error("GPT 요청 실패:", err);
       setGptRecommendations([]);
       setIsLoading(false);
     });

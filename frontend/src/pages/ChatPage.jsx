@@ -61,6 +61,15 @@ export default function ChatPage() {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
+  const initialMessage = location.state?.initialMessage;
+
+useEffect(() => {
+  if (initialMessage) {
+    setInputText(initialMessage);
+    handleSend(initialMessage);
+  }
+}, [initialMessage]);
+
   useEffect(() => {
     if (passedRecipe) {
       localStorage.setItem("recipeForChat", JSON.stringify(passedRecipe));
@@ -93,9 +102,9 @@ export default function ChatPage() {
     }
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
-  const handleSend = async () => {
-    const userText = inputText.trim();
-    if (!userText) return;
+  const handleSend = async (text) => {
+  const userText = (text ?? inputText).trim();
+  if (!userText) return;
     setMessages((prev) => [...prev, { id: prev.length + 1, sender: "user", type: "text", content: userText, time: getCurrentTime() }]);
     setInputText("");
 
@@ -554,7 +563,7 @@ export default function ChatPage() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="메시지를 입력하세요..."
+            placeholder="메시지를 입력하세요"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none"
           />
           <button
