@@ -459,11 +459,11 @@ export default function RecipePage() {
           {/* 플로팅 메모 버튼 */}
           <button
             onClick={() => setShowMemo(true)}
-            className="fixed bottom-20 bg-[#ffe2d9] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
-            style={{ left: "calc(50% + 180px)", transform: "translateX(-50%)" }}
+            className="fixed bottom-60 bg-[#ffe2d9] text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
+            style={{ left: "calc(50% + 218px)", transform: "translateX(-50%)" }}
             aria-label="메모 작성"
           >
-            📝
+            <span className="text-2xl">📝</span>
           </button>
 
           {/* 메모 작성 모달 */}

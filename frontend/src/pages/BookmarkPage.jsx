@@ -36,7 +36,7 @@ export default function BookmarkPage() {
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow bg-[#F7F8FA]">
         <div className="w-full max-w-md mx-auto text-sm">
-          <Header title="찜한 레시피" />
+          <Header title="찜한 레시피" showBack onBack={() => navigate(-1)} />
           <div className="p-4 flex flex-col gap-3">
             {recipes.map((recipe) => (
               <div

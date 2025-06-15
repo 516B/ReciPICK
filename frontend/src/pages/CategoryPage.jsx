@@ -211,7 +211,7 @@ export default function CategoryPage() {
     onClick={scrollToTop}
     className="fixed bottom-20 right-1/2 translate-x-1/2 md:right-0 md:translate-x-0 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
     style={{
-      right: 'calc(50% - 215px)', 
+      right: 'calc(50% - 250px)', 
     }}
     aria-label="맨 위로"
   >

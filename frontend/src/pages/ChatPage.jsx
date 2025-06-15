@@ -585,7 +585,7 @@ useEffect(() => {
   <button
     onClick={scrollToTop}
     className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
-    style={{ right: 'calc(50% - 215px)' }}
+    style={{ right: 'calc(50% - 245px)' }}
     aria-label="맨 위로"
   >
     <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>

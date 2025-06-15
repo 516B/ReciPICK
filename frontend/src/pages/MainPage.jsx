@@ -181,7 +181,7 @@ export default function MainPage() {
               onClick={scrollToTop}
               className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
               style={{
-                right: 'calc(50% - 215px)',
+                right: 'calc(50% - 238px)',
               }}
               aria-label="맨 위로"
             >
