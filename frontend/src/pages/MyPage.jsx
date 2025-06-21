@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import axios from "axios";
+import api from "../utils/api";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 const SEASONINGS = [
@@ -86,7 +86,7 @@ export default function MyPage() {
 
   const fetchGptRecommend = async (recentList, bookmarked, key, userId) => {
     try {
-      const res = await axios.post("http://localhost:8000/gpt/custom", {
+      const res = await api.post("/gpt/custom", {
         recent_recipes: recentList,
         bookmarked_recipe_ids: bookmarked,
       });
@@ -141,7 +141,7 @@ export default function MyPage() {
       }))
       .filter(r => r.ingredients.length > 0);
 
-    axios.get("http://localhost:8000/bookmark/", {
+    api.get("/bookmark/", {
       params: { user_id: userId },
     })
       .then((res) => {
@@ -149,7 +149,7 @@ export default function MyPage() {
           .filter(id => id !== null && id !== undefined)
           .map(id => String(id));
 
-        return axios.post("http://localhost:8000/gpt/custom", {
+        return api.post("/gpt/custom", {
           recent_recipes: recentForPrompt,
           bookmarked_recipe_ids: bookmarked,
         });
@@ -192,7 +192,7 @@ export default function MyPage() {
         {isLoggedIn ? (
           <div className="p-6 flex flex-col gap-4">
             {topIngredients.length > 0 && (
-                // [기능 1] 자주 쓴 재료 
+              // [기능 1] 자주 쓴 재료 
               <div>
                 <h3 className="text-base font-semibold mb-2">자주 쓴 재료</h3>
                 <div className="flex flex-wrap gap-2">
@@ -202,7 +202,7 @@ export default function MyPage() {
                       onClick={() =>
                         navigate("/chat", {
                           state: { initialMessage: `${name} 들어간 요리 추천해줘` },
-                          replace: true, 
+                          replace: true,
                         })
                       }
                       className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-full border border-orange-300 cursor-pointer hover:bg-orange-200"
@@ -215,7 +215,7 @@ export default function MyPage() {
             )}
 
             {recentRecipes.length > 0 && (
-                // [기능 2] 최근 본 레시피 
+              // [기능 2] 최근 본 레시피 
               <>
                 <hr className="border-t border-gray-200 my-2" />
 
@@ -252,10 +252,10 @@ export default function MyPage() {
                 </div>
               </>
             )}
-            
+
             <hr className="border-t border-gray-200 my-1" />
             <div className="mt-4">
-                {/* [기능 3] GPT 맞춤 추천 */}
+              {/* [기능 3] GPT 맞춤 추천 */}
               <h3
                 onClick={handleGptClick}
                 className="text-base font-bold mb-3 cursor-pointer hover:underline"
@@ -290,7 +290,7 @@ export default function MyPage() {
             <hr className="border-t border-gray-200 my-2" />
 
             <div className="mt-4">
-                {/* [기능 4] 로컬스토리지에 저장된 메모 목록 */}
+              {/* [기능 4] 로컬스토리지에 저장된 메모 목록 */}
               <h3 className="text-base font-bold mb-2">✏️ 저장한 메모</h3>
               {memos.length === 0 ? (
                 <p className="text-sm text-gray-500">작성한 메모가 없습니다.</p>
@@ -378,7 +378,9 @@ export default function MyPage() {
           </div>
         </div>
       )}
-      <Footer />
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
+        <Footer />
+      </div>
     </div>
   );
 }

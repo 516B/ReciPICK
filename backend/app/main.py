@@ -18,7 +18,10 @@ Base.metadata.create_all(bind=engine)
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=[
+        "http://localhost:5173",          # PC용
+        "http://192.168.123.175:5173",    # 스마트폰 접속용
+    ], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

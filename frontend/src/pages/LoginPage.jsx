@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -24,7 +24,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8000/auth/login", {
+      const res = await api.post("/auth/login", {
         email,
         password,
       });

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Clock, User, Star, Heart, Timer, Volume2, Square, ArrowRight } from "lucide-react";
 import Header from "../components/Header";
-import axios from "axios";
+import api from "../utils/api";
 
 function getStarsByDifficulty(difficulty) {
   switch (difficulty) {
@@ -68,7 +68,7 @@ export default function RecipePage() {
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/recipe/${id}`);
+        const res = await api.get(`/recipe/${id}`);
         setRecipe(res.data);
       } catch (err) {
         setError("레시피를 불러오는 데 실패했습니다.");
@@ -79,7 +79,7 @@ export default function RecipePage() {
     const fetchBookmarkStatus = async () => {
       if (!userId) return;
       try {
-        const res = await axios.get("http://localhost:8000/bookmark/", {
+        const res = await api.get("/bookmark/", {
           params: { user_id: userId },
         });
         const ids = res.data.recipe_ids.map(Number);
@@ -170,12 +170,12 @@ export default function RecipePage() {
 
     try {
       if (isBookmarked) {
-        await axios.delete(`http://localhost:8000/bookmark/${id}`, {
+        await api.delete(`/bookmark/${id}`, {
           params: { user_id: userId },
         });
         setIsBookmarked(false);
       } else {
-        await axios.post(`http://localhost:8000/bookmark/${id}`, null, {
+        await api.post(`/bookmark/${id}`, null, {
           params: { user_id: userId },
         });
         setIsBookmarked(true);
@@ -424,7 +424,6 @@ export default function RecipePage() {
             </div>
           )}
 
-
           {showMemoSaved && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 max-w-xs w-full text-center shadow-lg">
@@ -457,14 +456,26 @@ export default function RecipePage() {
           })}
 
           {/* 플로팅 메모 버튼 */}
+          {/* PC (md 이상)일 때만 보임 */}
           <button
             onClick={() => setShowMemo(true)}
-            className="fixed bottom-60 bg-[#ffe2d9] text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition"
+            className="hidden md:fixed md:bottom-60 md:bg-[#ffe2d9] md:text-white md:rounded-full md:w-14 md:h-14 md:flex md:items-center md:justify-center md:shadow-lg md:z-50 md:hover:bg-[#FDA177] md:transition"
             style={{ left: "calc(50% + 218px)", transform: "translateX(-50%)" }}
             aria-label="메모 작성"
           >
             <span className="text-2xl">📝</span>
           </button>
+
+          {/* 모바일일 때만 보임 */}
+          <button
+            onClick={() => setShowMemo(true)}
+            className="fixed bottom-20 right-4 bg-[#ffe2d9] text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg z-50 hover:bg-[#FDA177] transition md:hidden"
+            aria-label="메모 작성"
+          >
+            <span className="text-2xl">📝</span>
+          </button>
+
+
 
           {/* 메모 작성 모달 */}
           {showMemo && (

@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
+import api from "../utils/api";
 
 export default function MainPage() {
   const navigate = useNavigate();
@@ -37,8 +37,8 @@ export default function MainPage() {
     const fetchResults = async () => {
       if (!searchText.trim()) return;
       try {
-        const res = await axios.get(
-          `http://localhost:8000/search/title?q=${encodeURIComponent(searchText)}&page=${page}&per_page=8`
+        const res = await api.get(
+          `/search/title?q=${encodeURIComponent(searchText)}&page=${page}&per_page=8`
         );
         const newResults = res.data.recipes || [];
         setSearchResults((prev) => {
@@ -190,7 +190,9 @@ export default function MainPage() {
           )}
         </div>
       </main>
-      <Footer />
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
+          <Footer />
+        </div>
     </div>
   );
 }

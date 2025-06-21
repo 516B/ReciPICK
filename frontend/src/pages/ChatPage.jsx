@@ -2,7 +2,7 @@ import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Header from "../components/Header";
-import axios from "axios";
+import api from "../utils/api";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -52,8 +52,8 @@ export default function ChatPage() {
   const [previousSource, setPreviousSource] = useState("");
 
   const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const displayTimestamp = getCurrentDateTime();
 
@@ -62,42 +62,42 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-  const handleScroll = () => {
-    setShowTopBtn(window.scrollY > 200);
-  };
-  window.addEventListener("scroll", handleScroll);
-  return () => window.removeEventListener("scroll", handleScroll);
-}, []);
+    const handleScroll = () => {
+      setShowTopBtn(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-const initialMessage = location.state?.initialMessage;
-const hasSentInitial = useRef(false);
+  const initialMessage = location.state?.initialMessage;
+  const hasSentInitial = useRef(false);
 
-useEffect(() => {
-  if (initialMessage && !hasSentInitial.current) {
-    setInputText(initialMessage);
-    handleSend(initialMessage);
+  useEffect(() => {
+    if (initialMessage && !hasSentInitial.current) {
+      setInputText(initialMessage);
+      handleSend(initialMessage);
 
-    navigate(location.pathname, { replace: true });
-    hasSentInitial.current = true;
-  }
-}, [initialMessage, navigate, location.pathname]);
+      navigate(location.pathname, { replace: true });
+      hasSentInitial.current = true;
+    }
+  }, [initialMessage, navigate, location.pathname]);
 
 
-useEffect(() => {
-  const savedSeen = localStorage.getItem("seenRecipeIds");
-  const savedFilter = localStorage.getItem("lastFilterCondition");
-  const savedPage = localStorage.getItem("filterPage");
-  const storedPrevIng = localStorage.getItem("previousIngredients")
+  useEffect(() => {
+    const savedSeen = localStorage.getItem("seenRecipeIds");
+    const savedFilter = localStorage.getItem("lastFilterCondition");
+    const savedPage = localStorage.getItem("filterPage");
+    const storedPrevIng = localStorage.getItem("previousIngredients")
 
-  if (savedSeen) setSeenRecipeIds(JSON.parse(savedSeen));
-  if (savedFilter) setLastFilterCondition(JSON.parse(savedFilter));
-  if (savedPage) setFilterPage(Number(savedPage));
-  if (storedPrevIng) setPreviousIngredients(JSON.parse(storedPrevIng));
-}, []);
+    if (savedSeen) setSeenRecipeIds(JSON.parse(savedSeen));
+    if (savedFilter) setLastFilterCondition(JSON.parse(savedFilter));
+    if (savedPage) setFilterPage(Number(savedPage));
+    if (storedPrevIng) setPreviousIngredients(JSON.parse(storedPrevIng));
+  }, []);
 
   useEffect(() => {
     if (passedRecipe) {
@@ -132,8 +132,8 @@ useEffect(() => {
   }, [passedRecipe, recipeData, navigate, location.pathname]);
 
   const handleSend = async (text) => {
-  const userText = (text ?? inputText).trim();
-  if (!userText) return;
+    const userText = (text ?? inputText).trim();
+    if (!userText) return;
     setMessages((prev) => [...prev, { id: prev.length + 1, sender: "user", type: "text", content: userText, time: getCurrentTime() }]);
     setInputText("");
 
@@ -176,7 +176,7 @@ useEffect(() => {
           cookTime: cookTimeString || null,
         });
 
-        const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
+        const res = await api.get("/filter/difficulty-time", {
           params: {
             ...(difficulty && { difficulty }),
             ...(cookTimeString
@@ -212,7 +212,7 @@ useEffect(() => {
       if (userText.includes("다른") && lastFilterCondition !== null) {
         const nextPage = filterPage + 1;
 
-        const res = await axios.get("http://localhost:8000/filter/difficulty-time", {
+        const res = await api.get("/filter/difficulty-time", {
           params: {
             ...(lastFilterCondition.difficulty && {
               difficulty: lastFilterCondition.difficulty,
@@ -241,8 +241,8 @@ useEffect(() => {
         };
 
         if (recipes.length > 0) {
-    setPreviousSource("difficulty-time"); 
-  }
+          setPreviousSource("difficulty-time");
+        }
 
         setMessages((prev) => [...prev, botMessage]);
         return;
@@ -252,7 +252,7 @@ useEffect(() => {
       const servingMatch = userText.match(/(\d+)\s*(인분|명|인|배)/);
       if (servingMatch && recipeData) {
         const targetServing = `${servingMatch[1]}인분`;
-        const res = await axios.post("http://localhost:8000/gpt/servings", {
+        const res = await api.post("/gpt/servings", {
           title: recipeData.title,
           ingredients: recipeData.ingredients,
           steps: recipeData.steps,
@@ -292,7 +292,7 @@ useEffect(() => {
         const substituteTargets = ingredientNames.filter((name) => userText.includes(name));
 
         if (substituteTargets.length > 0) {
-          const res = await axios.post("http://localhost:8000/gpt/substitute", {
+          const res = await api.post("/gpt/substitute", {
             ingredients: recipeData.ingredients,
             steps: recipeData.steps,
             substitutes: substituteTargets,
@@ -329,7 +329,7 @@ useEffect(() => {
       }
 
       // 4. GPT 재료 기반 레시피 추천
-      const res = await axios.post("http://localhost:8000/gpt/recommend", {
+      const res = await api.post("/gpt/recommend", {
         message: userText,
         previous_ingredients: previousIngredients,
         seen_recipe_ids: seenRecipeIds,
@@ -350,8 +350,10 @@ useEffect(() => {
         id: messages.length + 2,
         sender: "bot",
         type: recipeList.length > 0 ? "recommendation" : "text",
-        content: recipeList.length > 0 ? { recipes: recipeList,
-        source: currentSource, } : "추천 결과가 없어요.",
+        content: recipeList.length > 0 ? {
+          recipes: recipeList,
+          source: currentSource,
+        } : "추천 결과가 없어요.",
         time: getCurrentTime(),
       };
 
@@ -403,19 +405,19 @@ useEffect(() => {
   };
 
   // seenRecipeIds가 바뀌면 저장
-useEffect(() => {
-  localStorage.setItem("seenRecipeIds", JSON.stringify(seenRecipeIds));
-}, [seenRecipeIds]);
+  useEffect(() => {
+    localStorage.setItem("seenRecipeIds", JSON.stringify(seenRecipeIds));
+  }, [seenRecipeIds]);
 
-// lastFilterCondition 바뀌면 저장
-useEffect(() => {
-  localStorage.setItem("lastFilterCondition", JSON.stringify(lastFilterCondition));
-}, [lastFilterCondition]);
+  // lastFilterCondition 바뀌면 저장
+  useEffect(() => {
+    localStorage.setItem("lastFilterCondition", JSON.stringify(lastFilterCondition));
+  }, [lastFilterCondition]);
 
-// filterPage 바뀌면 저장
-useEffect(() => {
-  localStorage.setItem("filterPage", filterPage.toString());
-}, [filterPage]);
+  // filterPage 바뀌면 저장
+  useEffect(() => {
+    localStorage.setItem("filterPage", filterPage.toString());
+  }, [filterPage]);
 
 
   return (
@@ -449,7 +451,7 @@ useEffect(() => {
                         {msg.content.recipes.map((recipe) => {
                           let emoji = "🍽️"; // 기본값
 
-                          if (msg.content.source === "difficulty-time") emoji = "⏱️";      
+                          if (msg.content.source === "difficulty-time") emoji = "⏱️";
 
                           return (
                             <li key={recipe.id} className="flex items-start">
@@ -582,15 +584,27 @@ useEffect(() => {
         </div>
       </div>
       {showTopBtn && (
-  <button
-    onClick={scrollToTop}
-    className="fixed bottom-20 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
-    style={{ right: 'calc(50% - 245px)' }}
-    aria-label="맨 위로"
-  >
-    <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
-  </button>
-)}
+        <>
+          {/* 데스크탑용 버튼 */}
+          <button
+            onClick={scrollToTop}
+            className="hidden md:fixed md:bottom-20 md:bg-[#FDA177] md:text-white md:rounded-full md:w-12 md:h-12 md:flex md:items-center md:justify-center md:shadow-lg md:z-50 md:transition md:hover:bg-[#fc5305]"
+            style={{ right: "calc(50% - 245px)" }}
+            aria-label="맨 위로 (PC)"
+          >
+            <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+          </button>
+
+          {/* 모바일용 버튼 */}
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-20 right-4 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305] md:hidden"
+            aria-label="맨 위로 (모바일)"
+          >
+            <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -15,13 +15,18 @@ body {
 
 #root {
   width: 100%;
-  max-width: 430px;  /* 앱 크기 고정 */
   margin: 0 auto;
-  background-color: white;
+  background-color: transparent;
   box-shadow: 0 0 20px rgba(0,0,0,0.05);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  /* height: 100dvh; */
 }
-  
+
+/* 데스크탑 화면일 때만 최대 너비 제한 */
+@media screen and (min-width: 768px) {
+  #root {
+    max-width: 430px;
+  }
+}

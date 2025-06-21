@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import { useState } from "react";
 
 export default function SignupPage() {
@@ -29,7 +29,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8000/auth/signup", {
+      const res = await api.post("/auth/signup", {
         email,
         password,
       });

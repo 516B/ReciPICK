@@ -2,7 +2,7 @@ import { Search, Heart } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Header from "../components/Header";
-import axios from "axios";
+import api from "../utils/api";
 
 export default function CategoryPage() {
   const location = useLocation();
@@ -38,9 +38,10 @@ export default function CategoryPage() {
   const categoryTitle = `${categoryIcon} ${categoryName}`;
 
   const fetchRecipes = async (pageNum = 1) => {
+
     try {
-      const res = await axios.get(
-        `http://localhost:8000/category/search?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
+      const res = await api.get(
+        `/category/search?name=${encodeURIComponent(decodedName)}&page=${pageNum}&per_page=8`
       );
       const newRecipes = res.data.recipes || [];
       setRecipes((prev) => {
@@ -59,7 +60,7 @@ export default function CategoryPage() {
   const fetchBookmarks = async () => {
     if (!userId) return;
     try {
-      const res = await axios.get("http://localhost:8000/bookmark/", {
+      const res = await api.get("/bookmark/", {
         params: { user_id: userId },
       });
       setBookmarkedIds(res.data.recipe_ids.map(id => Number(id)));
@@ -77,12 +78,12 @@ export default function CategoryPage() {
     const isBookmarked = bookmarkedIds.includes(Number(recipeId));
     try {
       if (isBookmarked) {
-        await axios.delete(`http://localhost:8000/bookmark/${recipeId}`, {
+        await api.delete(`/bookmark/${recipeId}`, {
           params: { user_id: userId },
         });
         setBookmarkedIds((prev) => prev.filter((id) => id !== Number(recipeId)));
       } else {
-        await axios.post(`http://localhost:8000/bookmark/${recipeId}`, null, {
+        await api.post(`/bookmark/${recipeId}`, null, {
           params: { user_id: userId },
         });
         setBookmarkedIds((prev) => [...prev, Number(recipeId)]);
@@ -206,18 +207,30 @@ export default function CategoryPage() {
             </p>
           )}
         </div>
+
+
         {showTopBtn && (
-  <button
-    onClick={scrollToTop}
-    className="fixed bottom-20 right-1/2 translate-x-1/2 md:right-0 md:translate-x-0 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305]"
-    style={{
-      right: 'calc(50% - 250px)', 
-    }}
-    aria-label="맨 위로"
-  >
-    <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
-  </button>
-)}
+          <>
+            {/*PC용 버튼 */}
+            <button
+              onClick={scrollToTop}
+              className="hidden md:fixed md:bottom-20 md:bg-[#FDA177] md:text-white md:rounded-full md:w-12 md:h-12 md:flex md:items-center md:justify-center md:shadow-lg md:z-50 md:transition md:hover:bg-[#fc5305]"
+              style={{ right: 'calc(50% - 250px)' }}
+              aria-label="맨 위로 (PC)"
+            >
+              <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+            </button>
+
+            {/*모바일용 버튼 */}
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-20 right-4 bg-[#FDA177] text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg z-50 transition hover:bg-[#fc5305] md:hidden"
+              aria-label="맨 위로 (모바일)"
+            >
+              <span style={{ fontSize: "2rem", lineHeight: "2rem" }}>↑</span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

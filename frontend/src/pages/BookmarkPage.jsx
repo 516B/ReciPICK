@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import axios from "axios";
+import api from "../utils/api";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,12 +16,12 @@ export default function BookmarkPage() {
     }
     const fetchBookmarkedRecipes = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/bookmark/", {
+        const res = await api.get("/bookmark/", {
           params: { user_id: userId },
         });
         const ids = res.data.recipe_ids;
         const recipePromises = ids.map((id) =>
-          axios.get(`http://localhost:8000/recipe/${id}`).then((r) => r.data)
+          api.get(`/recipe/${id}`).then((r) => r.data)
         );
         const recipeResults = await Promise.all(recipePromises);
         setRecipes(recipeResults);
@@ -34,7 +34,7 @@ export default function BookmarkPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-grow bg-[#F7F8FA]">
+      <main className="flex-grow bg-[#F7F8FA] pb-20">
         <div className="w-full max-w-md mx-auto text-sm">
           <Header title="찜한 레시피" showBack onBack={() => navigate(-1)} />
           <div className="p-4 flex flex-col gap-3">
@@ -57,7 +57,9 @@ export default function BookmarkPage() {
           </div>
         </div>
       </main>
-      <Footer />
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
+        <Footer />
+      </div>
     </div>
   );
 }
